@@ -12,7 +12,12 @@ async fn send_mail_e2e() {
     let from_user = std::env::var("MSGRAPH_FROM_USER").ok();
     let to_email = std::env::var("MSGRAPH_TO_EMAIL").unwrap_or_else(|_| "test@example.com".into());
 
-    let (tenant_id, client_id, client_secret, from_user) = match (tenant_id, client_id, client_secret, from_user) {
+    let (tenant_id, client_id, client_secret, from_user) = match (
+        tenant_id,
+        client_id,
+        client_secret,
+        from_user,
+    ) {
         (Some(t), Some(c), Some(s), Some(f)) => (t, c, s, f),
         _ => {
             eprintln!("Skipping: set AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, MSGRAPH_FROM_USER");

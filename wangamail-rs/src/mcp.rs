@@ -204,24 +204,20 @@ impl ServerHandler for WangaMailMcpServer {
         let req = SendMailRequest::new(message);
 
         match self.client.send_mail(&params.from_user, req).await {
-            Ok(()) => Ok(CallToolResult::success(vec![
-                Content {
-                    raw: RawContent::Text(RawTextContent {
-                        text: "Email sent successfully.".to_string(),
-                        meta: None,
-                    }),
-                    annotations: None,
-                },
-            ])),
-            Err(e) => Ok(CallToolResult::error(vec![
-                Content {
-                    raw: RawContent::Text(RawTextContent {
-                        text: format!("Send failed: {}", e),
-                        meta: None,
-                    }),
-                    annotations: None,
-                },
-            ])),
+            Ok(()) => Ok(CallToolResult::success(vec![Content {
+                raw: RawContent::Text(RawTextContent {
+                    text: "Email sent successfully.".to_string(),
+                    meta: None,
+                }),
+                annotations: None,
+            }])),
+            Err(e) => Ok(CallToolResult::error(vec![Content {
+                raw: RawContent::Text(RawTextContent {
+                    text: format!("Send failed: {}", e),
+                    meta: None,
+                }),
+                annotations: None,
+            }])),
         }
     }
 }
