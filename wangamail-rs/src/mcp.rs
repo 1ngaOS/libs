@@ -34,7 +34,9 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct SendEmailParams {
     /// User id or userPrincipalName to send as (e.g. `user@tenant.onmicrosoft.com`).
-    #[schemars(description = "User id or userPrincipalName to send as (e.g. user@tenant.onmicrosoft.com)")]
+    #[schemars(
+        description = "User id or userPrincipalName to send as (e.g. user@tenant.onmicrosoft.com)"
+    )]
     pub from_user: String,
 
     /// Recipient email addresses (to).
@@ -118,9 +120,7 @@ impl WangaMailMcpServer {
 impl ServerHandler for WangaMailMcpServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
+            capabilities: ServerCapabilities::builder().enable_tools().build(),
             ..Default::default()
         }
     }
@@ -157,8 +157,15 @@ impl ServerHandler for WangaMailMcpServer {
             ));
         }
 
-        let params: SendEmailParams = serde_json::from_value(request.arguments.unwrap_or(serde_json::Value::Null))
-            .map_err(|e| ErrorData::invalid_params("invalid_arguments", Some(serde_json::json!({ "error": e.to_string() }))))?;
+        let params: SendEmailParams = serde_json::from_value(
+            request.arguments.unwrap_or(serde_json::Value::Null),
+        )
+        .map_err(|e| {
+            ErrorData::invalid_params(
+                "invalid_arguments",
+                Some(serde_json::json!({ "error": e.to_string() })),
+            )
+        })?;
 
         let body_type = if params.body_type.eq_ignore_ascii_case("html") {
             BodyType::HTML
@@ -166,9 +173,21 @@ impl ServerHandler for WangaMailMcpServer {
             BodyType::Text
         };
 
-        let to_recipients: Vec<Recipient> = params.to.iter().map(|a| Recipient::new(a.as_str())).collect();
-        let cc_recipients: Vec<Recipient> = params.cc.iter().map(|a| Recipient::new(a.as_str())).collect();
-        let bcc_recipients: Vec<Recipient> = params.bcc.iter().map(|a| Recipient::new(a.as_str())).collect();
+        let to_recipients: Vec<Recipient> = params
+            .to
+            .iter()
+            .map(|a| Recipient::new(a.as_str()))
+            .collect();
+        let cc_recipients: Vec<Recipient> = params
+            .cc
+            .iter()
+            .map(|a| Recipient::new(a.as_str()))
+            .collect();
+        let bcc_recipients: Vec<Recipient> = params
+            .bcc
+            .iter()
+            .map(|a| Recipient::new(a.as_str()))
+            .collect();
 
         let message = Message {
             subject: params.subject,
