@@ -160,13 +160,12 @@ impl ServerHandler for WangaMailMcpServer {
             .arguments
             .map(serde_json::Value::Object)
             .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
-        let params: SendEmailParams = serde_json::from_value(args_value)
-            .map_err(|err| {
-                ErrorData::invalid_params(
-                    "invalid_arguments",
-                    Some(serde_json::json!({ "error": err.to_string() })),
-                )
-            })?;
+        let params: SendEmailParams = serde_json::from_value(args_value).map_err(|err| {
+            ErrorData::invalid_params(
+                "invalid_arguments",
+                Some(serde_json::json!({ "error": err.to_string() })),
+            )
+        })?;
 
         let body_type = if params.body_type.eq_ignore_ascii_case("html") {
             BodyType::HTML
