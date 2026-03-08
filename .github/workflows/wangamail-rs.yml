@@ -327,6 +327,9 @@ jobs:
           echo "## Publish" >> $GITHUB_STEP_SUMMARY
           echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### If publish failed with \"verified email required\"" >> $GITHUB_STEP_SUMMARY
+          echo "Add and verify your email at [crates.io profile](https://crates.io/settings/profile) (account that owns \`CARGO_REGISTRY_TOKEN\`)." >> $GITHUB_STEP_SUMMARY
 
   release:
     name: Create Release

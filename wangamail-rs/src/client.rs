@@ -10,7 +10,11 @@ const DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
 /// Base URL for global Microsoft Graph.
 const DEFAULT_GRAPH_BASE: &str = "https://graph.microsoft.com/v1.0";
 
-/// Builds [GraphMailClient].
+/// Builder for [`GraphMailClient`].
+///
+/// Required: [`tenant_id`](GraphMailClientBuilder::tenant_id), [`client_id`](GraphMailClientBuilder::client_id),
+/// [`client_secret`](GraphMailClientBuilder::client_secret). Optional overrides for sovereign clouds:
+/// [`token_url`](GraphMailClientBuilder::token_url), [`graph_base`](GraphMailClientBuilder::graph_base), [`scope`](GraphMailClientBuilder::scope).
 #[derive(Debug, Clone, Default)]
 pub struct GraphMailClientBuilder {
     tenant_id: Option<String>,
@@ -22,6 +26,7 @@ pub struct GraphMailClientBuilder {
 }
 
 impl GraphMailClientBuilder {
+    /// Create a new builder with no configuration set.
     pub fn new() -> Self {
         Self::default()
     }
@@ -62,6 +67,7 @@ impl GraphMailClientBuilder {
         self
     }
 
+    /// Build the [`GraphMailClient`]. Fails if `tenant_id`, `client_id`, or `client_secret` are missing.
     pub fn build(self) -> Result<GraphMailClient> {
         let tenant_id = self
             .tenant_id
@@ -108,6 +114,9 @@ impl GraphMailClientBuilder {
 }
 
 /// Client for sending email via Microsoft Graph (app-only, client credentials).
+///
+/// Obtain an access token using the OAuth2 client credentials flow and call the Graph
+/// `POST /users/{id}/sendMail` API. Use [`GraphMailClient::builder`] to construct.
 #[derive(Clone)]
 pub struct GraphMailClient {
     http_client: Client,
@@ -116,12 +125,15 @@ pub struct GraphMailClient {
 }
 
 impl GraphMailClient {
+    /// Return a new builder for configuring and creating a [`GraphMailClient`].
     pub fn builder() -> GraphMailClientBuilder {
         GraphMailClientBuilder::new()
     }
 
     /// Send an email as the given user (user id or userPrincipalName).
-    /// The app must have Mail.Send application permission and admin consent.
+    ///
+    /// The app must have **Mail.Send** application permission and admin consent.
+    /// The user must have a mailbox in Exchange Online.
     pub async fn send_mail(&self, from_user: &str, request: SendMailRequest) -> Result<()> {
         let token = self.token_provider.get_token().await?;
         let url = format!(

@@ -6,7 +6,7 @@ description = "Send email via Microsoft Graph API using app registration (client
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/your-org/wangalibs"
-keywords = ["wanga", "wangamail", "microsoft", "graph", "email", "outlook", "oauth2", "mcp"]
+keywords = ["wangamail", "microsoft", "graph", "email", "oauth2"]
 categories = ["email", "web-programming::http-client"]
 authors = ["Your Name <you@example.com>"]
 

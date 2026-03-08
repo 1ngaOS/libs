@@ -4,6 +4,12 @@
 //! and app registration credentials (OAuth2 client credentials flow). Part of the WangaMail family
 //! (`wangamail-rs`, `wangamail-js`, `wangamail-py`, `wangamail-net`).
 //!
+//! ## Features
+//!
+//! - **Default:** Build a [`GraphMailClient`] and send mail with [`send_mail`](GraphMailClient::send_mail).
+//! - **`mcp`:** Optional [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes a
+//!   **send_email** tool for AI assistants (Cursor, Claude Desktop, etc.). See the [`mcp`] module.
+//!
 //! ## Setup
 //!
 //! 1. Register an application in [Azure Portal](https://portal.azure.com) → Microsoft Entra ID → App registrations.
@@ -39,6 +45,12 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! ## Modules
+//!
+//! - **[`mcp`]** (optional, feature `mcp`): MCP server and **send_email** tool for AI tool use.
+
+#![warn(missing_docs)]
 
 mod auth;
 mod client;
