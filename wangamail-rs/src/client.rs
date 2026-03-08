@@ -63,12 +63,21 @@ impl GraphMailClientBuilder {
     }
 
     pub fn build(self) -> Result<GraphMailClient> {
-        let tenant_id = self.tenant_id.ok_or_else(|| Error::Config("tenant_id is required".into()))?;
-        let client_id = self.client_id.ok_or_else(|| Error::Config("client_id is required".into()))?;
-        let client_secret = self.client_secret.ok_or_else(|| Error::Config("client_secret is required".into()))?;
+        let tenant_id = self
+            .tenant_id
+            .ok_or_else(|| Error::Config("tenant_id is required".into()))?;
+        let client_id = self
+            .client_id
+            .ok_or_else(|| Error::Config("client_id is required".into()))?;
+        let client_secret = self
+            .client_secret
+            .ok_or_else(|| Error::Config("client_secret is required".into()))?;
 
         let token_url = self.token_url.unwrap_or_else(|| {
-            format!("https://login.microsoftonline.com/{}/oauth2/v2.0/token", tenant_id)
+            format!(
+                "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
+                tenant_id
+            )
         });
         let graph_base = self
             .graph_base
@@ -135,6 +144,9 @@ impl GraphMailClient {
         }
 
         let body = res.text().await.unwrap_or_default();
-        Err(Error::Graph(format!("sendMail failed: {} {}", status, body)))
+        Err(Error::Graph(format!(
+            "sendMail failed: {} {}",
+            status, body
+        )))
     }
 }
