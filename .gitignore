@@ -1,0 +1,90 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+vendor/
+deps/
+_build/
+
+# Rust
+target/
+**/*.rs.bk
+*.pdb
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.mypy/
+dist/
+build/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.env/
+.python-version
+
+# Node / TypeScript
+.next/
+out/
+build/
+.turbo/
+.vercel/
+*.tsbuildinfo
+.npm/
+.yarn/
+.yarnrc.yml
+
+# Build outputs
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+*.rlib
+*.d
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# IDE and editors
+.vscode/
+.idea/
+*.iml
+*.sublime-*
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Test and coverage
+coverage/
+.coverage
+htmlcov/
+.cargo-nextest/
+test-results/
+playwright-report/
+*.log
+
+# Debug and temp
+*.log
+*.tmp
+*.temp
+.cache/
+
+# Optional: local overrides (uncomment if used)
+# docker-compose.override.yml
+# *.sqlite
+# *.db
