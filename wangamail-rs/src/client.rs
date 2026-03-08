@@ -68,7 +68,6 @@ impl GraphMailClientBuilder {
     }
 
     /// Build the [`GraphMailClient`]. Fails if `tenant_id`, `client_id`, or `client_secret` are missing.
-    #[must_use]
     pub fn build(self) -> Result<GraphMailClient> {
         let tenant_id = self
             .tenant_id
