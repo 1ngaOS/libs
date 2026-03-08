@@ -160,10 +160,10 @@ impl ServerHandler for WangaMailMcpServer {
         let params: SendEmailParams = serde_json::from_value(
             request.arguments.unwrap_or(serde_json::Value::Null),
         )
-        .map_err(|e| {
+        .map_err(|err| {
             ErrorData::invalid_params(
                 "invalid_arguments",
-                Some(serde_json::json!({ "error": e.to_string() })),
+                Some(serde_json::json!({ "error": err.to_string() })),
             )
         })?;
 
@@ -176,17 +176,17 @@ impl ServerHandler for WangaMailMcpServer {
         let to_recipients: Vec<Recipient> = params
             .to
             .iter()
-            .map(|a| Recipient::new(a.as_str()))
+            .map(|addr| Recipient::new(addr.as_str()))
             .collect();
         let cc_recipients: Vec<Recipient> = params
             .cc
             .iter()
-            .map(|a| Recipient::new(a.as_str()))
+            .map(|addr| Recipient::new(addr.as_str()))
             .collect();
         let bcc_recipients: Vec<Recipient> = params
             .bcc
             .iter()
-            .map(|a| Recipient::new(a.as_str()))
+            .map(|addr| Recipient::new(addr.as_str()))
             .collect();
 
         let message = Message {
@@ -213,7 +213,7 @@ impl ServerHandler for WangaMailMcpServer {
             }])),
             Err(e) => Ok(CallToolResult::error(vec![Content {
                 raw: RawContent::Text(RawTextContent {
-                    text: format!("Send failed: {}", e),
+                    text: format!("Send failed: {e}"),
                     meta: None,
                 }),
                 annotations: None,

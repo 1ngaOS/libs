@@ -68,6 +68,7 @@ impl GraphMailClientBuilder {
     }
 
     /// Build the [`GraphMailClient`]. Fails if `tenant_id`, `client_id`, or `client_secret` are missing.
+    #[must_use]
     pub fn build(self) -> Result<GraphMailClient> {
         let tenant_id = self
             .tenant_id
@@ -94,7 +95,7 @@ impl GraphMailClientBuilder {
 
         let http_client = Client::builder()
             .build()
-            .map_err(|e| Error::Config(format!("HTTP client: {}", e)))?;
+            .map_err(|e| Error::Config(format!("HTTP client: {e}")))?;
 
         let token_provider = TokenProvider::new(
             tenant_id,
@@ -126,6 +127,7 @@ pub struct GraphMailClient {
 
 impl GraphMailClient {
     /// Return a new builder for configuring and creating a [`GraphMailClient`].
+    #[must_use]
     pub fn builder() -> GraphMailClientBuilder {
         GraphMailClientBuilder::new()
     }
