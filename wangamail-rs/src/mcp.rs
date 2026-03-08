@@ -30,8 +30,6 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use std::sync::Arc;
 
-type McpResult<T> = std::result::Result<T, rmcp::Error>;
-
 /// Parameters for the **send_email** MCP tool.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct SendEmailParams {
@@ -102,10 +100,18 @@ impl WangaMailMcpServer {
 
     /// Run the MCP server over stdio (stdin/stdout). Use this as the main entry
     /// when the process is launched as an MCP subprocess.
-    pub async fn run_stdio(self) -> McpResult<()> {
+    pub async fn run_stdio(
+        self,
+    ) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let transport = (tokio::io::stdin(), tokio::io::stdout());
-        let service = self.serve(transport).await?;
-        service.waiting().await?;
+        let service = self
+            .serve(transport)
+            .await
+            .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.to_string().into() })?;
+        service
+            .waiting()
+            .await
+            .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.to_string().into() })?;
         Ok(())
     }
 
