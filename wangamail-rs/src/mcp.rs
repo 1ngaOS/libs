@@ -30,6 +30,8 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use std::sync::Arc;
 
+type McpResult<T> = std::result::Result<T, rmcp::Error>;
+
 /// Parameters for the **send_email** MCP tool.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct SendEmailParams {
@@ -100,7 +102,7 @@ impl WangaMailMcpServer {
 
     /// Run the MCP server over stdio (stdin/stdout). Use this as the main entry
     /// when the process is launched as an MCP subprocess.
-    pub async fn run_stdio(self) -> rmcp::Result<()> {
+    pub async fn run_stdio(self) -> McpResult<()> {
         let transport = (tokio::io::stdin(), tokio::io::stdout());
         let service = self.serve(transport).await?;
         service.waiting().await?;
@@ -119,10 +121,7 @@ impl WangaMailMcpServer {
 
 impl ServerHandler for WangaMailMcpServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
-            ..Default::default()
-        }
+        InitializeResult::new(ServerCapabilities::builder().enable_tools().build())
     }
 
     fn get_tool(&self, name: &str) -> Option<Tool> {
@@ -157,15 +156,17 @@ impl ServerHandler for WangaMailMcpServer {
             ));
         }
 
-        let params: SendEmailParams = serde_json::from_value(
-            request.arguments.unwrap_or(serde_json::Value::Null),
-        )
-        .map_err(|err| {
-            ErrorData::invalid_params(
-                "invalid_arguments",
-                Some(serde_json::json!({ "error": err.to_string() })),
-            )
-        })?;
+        let args_value = request
+            .arguments
+            .map(serde_json::Value::Object)
+            .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
+        let params: SendEmailParams = serde_json::from_value(args_value)
+            .map_err(|err| {
+                ErrorData::invalid_params(
+                    "invalid_arguments",
+                    Some(serde_json::json!({ "error": err.to_string() })),
+                )
+            })?;
 
         let body_type = if params.body_type.eq_ignore_ascii_case("html") {
             BodyType::HTML
