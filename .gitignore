@@ -1,3 +1,6 @@
+# Global gitignore for wangalibs (Rust, future Node/Python).
+# To stop tracking already-committed paths: git rm -r --cached <path>
+
 # Dependencies
 node_modules/
 .pnpm-store/
