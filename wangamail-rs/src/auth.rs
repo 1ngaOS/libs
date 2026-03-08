@@ -54,9 +54,17 @@ impl TokenProvider {
 
     pub async fn get_token(&self) -> Result<String> {
         {
-            let guard = self.cached.lock().map_err(|_| Error::Config("token cache mutex poisoned".into()))?;
+            let guard = self
+                .cached
+                .lock()
+                .map_err(|_| Error::Config("token cache mutex poisoned".into()))?;
             if let Some(cache) = guard.as_ref() {
-                if cache.expires_at.saturating_duration_since(Instant::now()).as_secs() > REFRESH_BUFFER_SECS {
+                if cache
+                    .expires_at
+                    .saturating_duration_since(Instant::now())
+                    .as_secs()
+                    > REFRESH_BUFFER_SECS
+                {
                     return Ok(cache.token.clone());
                 }
             }
@@ -90,10 +98,14 @@ impl TokenProvider {
         let token_res: TokenResponse = serde_json::from_str(&body)
             .map_err(|e| Error::Auth(format!("Invalid token response: {}", e)))?;
 
-        let expires_at = Instant::now() + Duration::from_secs(token_res.expires_in.saturating_sub(REFRESH_BUFFER_SECS));
+        let expires_at = Instant::now()
+            + Duration::from_secs(token_res.expires_in.saturating_sub(REFRESH_BUFFER_SECS));
         let token = token_res.access_token.clone();
         {
-            let mut guard = self.cached.lock().map_err(|_| Error::Config("token cache mutex poisoned".into()))?;
+            let mut guard = self
+                .cached
+                .lock()
+                .map_err(|_| Error::Config("token cache mutex poisoned".into()))?;
             *guard = Some(TokenCache {
                 token: token.clone(),
                 expires_at,

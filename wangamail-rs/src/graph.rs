@@ -71,7 +71,11 @@ pub struct FileAttachment {
 }
 
 impl FileAttachment {
-    pub fn new(name: impl Into<String>, content_type: impl Into<String>, content_bytes_base64: impl Into<String>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        content_type: impl Into<String>,
+        content_bytes_base64: impl Into<String>,
+    ) -> Self {
         Self {
             odata_type: "#microsoft.graph.fileAttachment".to_string(),
             name: name.into(),
