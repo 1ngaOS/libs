@@ -319,7 +319,7 @@ jobs:
         working-directory: wangamail-rs
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish --token "$CARGO_REGISTRY_TOKEN"
+        run: cargo publish --allow-dirty
 
       - name: Job summary
         if: always()
