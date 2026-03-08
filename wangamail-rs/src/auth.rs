@@ -100,7 +100,7 @@ impl TokenProvider {
 
         let expires_at = Instant::now()
             + Duration::from_secs(token_res.expires_in.saturating_sub(REFRESH_BUFFER_SECS));
-        let token = token_res.access_token.clone();
+        let token = token_res.access_token;
         {
             let mut guard = self
                 .cached
