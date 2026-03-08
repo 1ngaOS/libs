@@ -359,3 +359,160 @@ jobs:
           echo "## Release" >> $GITHUB_STEP_SUMMARY
           echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tag:** wangamail-rs-v${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
+  monitor-failures:
+    name: Monitor Failed Jobs
+    runs-on: ubuntu-latest
+    if: always() && failure()
+    needs: [format, lint, check, test, version-bump, build, get-version, publish, release]
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+
+            const { data: jobsData } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+
+            const failedJobs = jobsData.jobs.filter(job =>
+              job.conclusion === 'failure' ||
+              job.conclusion === 'cancelled' ||
+              job.conclusion === 'timed_out'
+            );
+
+            if (failedJobs.length === 0) {
+              console.log('No failed jobs found');
+              return;
+            }
+
+            const branch = context.ref.replace('refs/heads/', '');
+            const title = `🚨 CI/CD Failure: wangamail-rs - ${branch} branch`;
+
+            let body = `## CI/CD Pipeline Failure\n\n`;
+            body += `**Workflow:** [wangamail-rs](${run.html_url})\n`;
+            body += `**Branch:** \`${branch}\`\n`;
+            body += `**Commit:** [${context.sha.substring(0, 7)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${context.sha})\n`;
+            body += `**Triggered by:** @${context.actor}\n`;
+            body += `**Started:** ${new Date(run.created_at).toISOString()}\n`;
+            body += `**Status:** ${run.status} / ${run.conclusion}\n\n`;
+
+            body += `### Failed Jobs (${failedJobs.length})\n\n`;
+            for (const job of failedJobs) {
+              body += `#### ❌ ${job.name}\n\n`;
+              body += `- **Status:** ${job.conclusion}\n`;
+              body += `- **Job URL:** [View Job](${job.html_url})\n`;
+              body += `- **Started:** ${job.started_at ? new Date(job.started_at).toISOString() : 'N/A'}\n`;
+              body += `- **Completed:** ${job.completed_at ? new Date(job.completed_at).toISOString() : 'N/A'}\n`;
+              if (job.steps && job.steps.length > 0) {
+                const failedSteps = job.steps.filter(step =>
+                  step.conclusion === 'failure' ||
+                  step.conclusion === 'cancelled' ||
+                  step.conclusion === 'timed_out'
+                );
+                if (failedSteps.length > 0) {
+                  body += `- **Failed Steps:**\n`;
+                  for (const step of failedSteps) {
+                    const stepUrl = `${job.html_url}#step:${step.number}:1`;
+                    body += `  - [\`${step.name}\`](${stepUrl}) (Step ${step.number}) - ${step.conclusion}\n`;
+                  }
+                }
+              }
+              body += `\n`;
+            }
+
+            body += `### Next Steps\n\n`;
+            body += `1. Review the failed job logs using the links above\n`;
+            body += `2. Check for common issues:\n`;
+            body += `   - **Format:** Run \`cargo fmt\` locally and ensure \`cargo fmt --check\` passes\n`;
+            body += `   - Dependency or build errors\n`;
+            body += `   - Test failures\n`;
+            body += `   - Version bump or publish issues\n`;
+            body += `3. Fix and push a new commit; close this issue once the pipeline passes\n\n`;
+            body += `---\n*This issue was automatically created by the CI/CD monitoring system.*\n`;
+            body += `*Workflow: \`.github/workflows/wangamail-rs.yml\`*\n`;
+
+            const milestoneTitle = 'CI/CD Failures';
+            let milestoneNumber = null;
+            try {
+              const { data: milestones } = await github.rest.issues.listMilestones({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open'
+              });
+              let milestone = milestones.find(m => m.title === milestoneTitle);
+              if (!milestone) {
+                const { data: newMilestone } = await github.rest.issues.createMilestone({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: milestoneTitle,
+                  description: 'Track all CI/CD pipeline failures across the repository',
+                  state: 'open'
+                });
+                milestone = newMilestone;
+              }
+              milestoneNumber = milestone.number;
+            } catch (e) {
+              console.log('Could not create/find milestone:', e.message);
+            }
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'ci-failure,wangamail-rs'
+            });
+
+            const existingIssue = issues.find(issue =>
+              issue.title === title || issue.title.includes(`wangamail-rs - ${branch}`)
+            );
+
+            if (existingIssue) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body,
+                state: 'open',
+                milestone: milestoneNumber
+              });
+              console.log(`Updated existing issue #${existingIssue.number}`);
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['ci-failure', 'wangamail-rs', 'bug', 'priority-high'],
+                milestone: milestoneNumber
+              });
+              console.log('Created new failure issue');
+            }
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Monitor Failed Jobs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Component:** wangamail-rs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Completed Steps" >> $GITHUB_STEP_SUMMARY
+          echo "- Checkout repository" >> $GITHUB_STEP_SUMMARY
+          echo "- Create/update failure issue" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** This job runs only when other jobs fail." >> $GITHUB_STEP_SUMMARY
