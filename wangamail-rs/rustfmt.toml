@@ -1,0 +1,3 @@
+# Match CI and default rustfmt behavior
+edition = "2021"
+max_width = 100

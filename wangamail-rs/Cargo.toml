@@ -6,7 +6,7 @@ description = "Send email via Microsoft Graph API using app registration (client
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/your-org/wangalibs"
-keywords = ["wanga", "wangamail", "microsoft", "graph", "email", "outlook", "oauth2", "mcp"]
+keywords = ["wangamail", "microsoft", "graph", "email", "oauth2"]
 categories = ["email", "web-programming::http-client"]
 authors = ["Your Name <you@example.com>"]
 
@@ -23,7 +23,7 @@ urlencoding = "2.1"
 
 # Optional MCP server (for AI tools to send email via Model Context Protocol)
 rmcp = { version = "1.1", optional = true, default-features = false, features = ["server", "transport-io", "schemars"] }
-schemars = { version = "0.8", optional = true }
+schemars = { version = "1", optional = true }
 tokio = { version = "1", optional = true, features = ["io-std", "macros", "rt", "rt-multi-thread"] }
 
 [dev-dependencies]

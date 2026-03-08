@@ -5,7 +5,7 @@
 //! Run: cargo run --example mcp_server --features mcp
 
 #[cfg(feature = "mcp")]
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let server = wangamail_rs::mcp::WangaMailMcpServer::from_env()?;
     tokio::runtime::Builder::new_current_thread()
         .enable_all()

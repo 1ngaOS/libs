@@ -86,7 +86,7 @@ jobs:
 
       - name: Run clippy
         working-directory: wangamail-rs
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Job summary
         if: always()
@@ -124,7 +124,7 @@ jobs:
 
       - name: Run cargo check
         working-directory: wangamail-rs
-        run: cargo check
+        run: cargo check --all-features
 
       - name: Job summary
         if: always()
@@ -162,7 +162,7 @@ jobs:
 
       - name: Run tests
         working-directory: wangamail-rs
-        run: cargo test
+        run: cargo test --all-features
 
       - name: Job summary
         if: always()
@@ -327,6 +327,9 @@ jobs:
           echo "## Publish" >> $GITHUB_STEP_SUMMARY
           echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### If publish failed with \"verified email required\"" >> $GITHUB_STEP_SUMMARY
+          echo "Add and verify your email at [crates.io profile](https://crates.io/settings/profile) (account that owns \`CARGO_REGISTRY_TOKEN\`)." >> $GITHUB_STEP_SUMMARY
 
   release:
     name: Create Release

@@ -2,6 +2,11 @@
 
 Send email on behalf of a Microsoft tenant using [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/overview) and app registration credentials (OAuth2 client credentials flow). Suitable for daemon apps and backend services. Part of the WangaMail family: **wangamail-rs** (Rust), **wangamail-js** (JavaScript), **wangamail-py** (Python), **wangamail-net** (.NET).
 
+## Documentation
+
+- **API docs:** [docs.rs/wangamail-rs](https://docs.rs/wangamail-rs) (after publishing)
+- **Build locally:** `cargo doc --open` in this crate
+
 ## Requirements
 
 - **Rust** 2021 edition

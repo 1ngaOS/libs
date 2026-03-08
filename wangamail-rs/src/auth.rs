@@ -96,11 +96,11 @@ impl TokenProvider {
         }
 
         let token_res: TokenResponse = serde_json::from_str(&body)
-            .map_err(|e| Error::Auth(format!("Invalid token response: {}", e)))?;
+            .map_err(|e| Error::Auth(format!("Invalid token response: {e}")))?;
 
         let expires_at = Instant::now()
             + Duration::from_secs(token_res.expires_in.saturating_sub(REFRESH_BUFFER_SECS));
-        let token = token_res.access_token.clone();
+        let token = token_res.access_token;
         {
             let mut guard = self
                 .cached
