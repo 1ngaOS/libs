@@ -3,6 +3,10 @@
 //! Helpers for working with [PayFast](https://www.payfast.co.za/) payments and
 //! ITN (Instant Transaction Notification) messages in Rust services.
 //!
+//! ---
+//!
+//! Developed with love by **1nga Solutions** · Logo: <https://www.1nga.com/logo.svg>
+//!
 //! The main focus of this crate is:
 //! - Parsing the `application/x-www-form-urlencoded` ITN body
 //! - Re‐generating and verifying the PayFast ITN signature

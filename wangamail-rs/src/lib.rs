@@ -4,6 +4,10 @@
 //! and app registration credentials (OAuth2 client credentials flow). Part of the WangaMail family
 //! (`wangamail-rs`, `wangamail-js`, `wangamail-py`, `wangamail-net`).
 //!
+//! ---
+//!
+//! Developed with love by **1nga Solutions** · Logo: <https://www.1nga.com/logo.svg>
+//!
 //! ## Features
 //!
 //! - **Default:** Build a [`GraphMailClient`] and send mail with [`send_mail`](GraphMailClient::send_mail).

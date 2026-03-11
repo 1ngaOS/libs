@@ -132,3 +132,9 @@ To enable **publish to crates.io**, add a repository secret:
 ## License
 
 MIT OR Apache-2.0
+
+---
+
+![1nga Solutions](https://www.1nga.com/logo.svg)
+
+**Developed with love by 1nga Solutions**
