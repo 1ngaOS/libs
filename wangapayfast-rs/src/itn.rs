@@ -31,7 +31,11 @@ impl PayFastConfig {
     }
 
     /// Also set the merchant id and key you expect.
-    pub fn with_merchant(mut self, merchant_id: impl Into<String>, merchant_key: impl Into<String>) -> Self {
+    pub fn with_merchant(
+        mut self,
+        merchant_id: impl Into<String>,
+        merchant_key: impl Into<String>,
+    ) -> Self {
         self.merchant_id = Some(merchant_id.into());
         self.merchant_key = Some(merchant_key.into());
         self
@@ -148,7 +152,7 @@ impl ItnNotification {
 }
 
 /// Normalised PayFast payment_status values.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ItnPaymentStatus {
     /// The payment has been completed and funds should be treated as paid.
     Complete,
@@ -157,13 +161,8 @@ pub enum ItnPaymentStatus {
     /// The payment is still pending.
     Pending,
     /// Any other / unknown status string.
+    #[default]
     Other,
-}
-
-impl Default for ItnPaymentStatus {
-    fn default() -> Self {
-        ItnPaymentStatus::Other
-    }
 }
 
 impl From<&str> for ItnPaymentStatus {
@@ -195,7 +194,7 @@ impl ItnPaymentStatus {
 }
 
 /// Normalised PayFast `payment_method` values.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PaymentMethod {
     /// Credit / debit card.
     Card,
@@ -204,13 +203,8 @@ pub enum PaymentMethod {
     /// Standard EFT.
     Eft,
     /// Cash / other methods (e.g. Masterpass, SnapScan, etc.).
+    #[default]
     Other,
-}
-
-impl Default for PaymentMethod {
-    fn default() -> Self {
-        PaymentMethod::Other
-    }
 }
 
 impl From<&str> for PaymentMethod {
@@ -439,4 +433,3 @@ pub async fn post_back_validate_itn(
         ItnValidationOutcome::NetworkError
     }
 }
-

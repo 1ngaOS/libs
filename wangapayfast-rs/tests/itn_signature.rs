@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use once_cell::sync::Lazy;
 use wangapayfast_rs::{
-    generate_checkout_signature, generate_itn_signature, CheckoutFieldOrder, CheckoutParams,
-    ItnNotification, ItnRequest, PayFastConfig, PaymentMethod, verify_itn_signature,
+    generate_checkout_signature, generate_itn_signature, verify_itn_signature, CheckoutFieldOrder,
+    CheckoutParams, ItnNotification, ItnRequest, PayFastConfig, PaymentMethod,
 };
 
 static SAMPLE_PARAMS: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
@@ -112,4 +112,3 @@ fn checkout_signature_respects_order_and_passphrase() {
     let sig2 = generate_checkout_signature(&params, Some("p2"), &order);
     assert_ne!(sig1, sig2);
 }
-

@@ -56,14 +56,17 @@
 
 mod error;
 mod itn;
+mod payments;
 
 pub use crate::error::{Error, Result};
 pub use crate::itn::{
-    generate_checkout_signature, generate_itn_signature, verify_itn_signature,
-    CheckoutFieldOrder, CheckoutParams, ItnNotification, ItnPaymentStatus,
-    ItnRequest, PayFastConfig, PaymentMethod,
+    generate_checkout_signature, generate_itn_signature, verify_itn_signature, CheckoutFieldOrder,
+    CheckoutParams, ItnNotification, ItnPaymentStatus, ItnRequest, PayFastConfig, PaymentMethod,
+};
+pub use crate::payments::{
+    build_once_off_checkout, build_subscription_checkout, AdvancedPaymentRequest, CheckoutResponse,
+    OnceOffPaymentRequest, SplitPayment, SubscriptionOptions,
 };
 
 #[cfg(feature = "http")]
 pub use crate::itn::{post_back_validate_itn, ItnValidationOutcome};
-
