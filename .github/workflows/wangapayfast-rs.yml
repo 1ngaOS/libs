@@ -225,7 +225,10 @@ jobs:
             echo "No version change to commit"
           else
             git commit -m "chore(wangapayfast-rs): bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
-            git push origin main
+            # Sync with remote main to avoid non-fast-forward push failures
+            git fetch origin main || true
+            git pull origin main --rebase || git pull origin main --no-rebase || true
+            git push origin main || git push origin main --force-with-lease
           fi
 
       - name: Job summary
