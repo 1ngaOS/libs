@@ -15,4 +15,3 @@ pub enum Error {
     #[error("missing `signature` field in ITN payload")]
     MissingSignature,
 }
-

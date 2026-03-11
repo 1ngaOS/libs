@@ -1,0 +1,522 @@
+name: wangapayfast-rs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'wangapayfast-rs/**'
+      - '.github/workflows/wangapayfast-rs.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'wangapayfast-rs/**'
+      - '.github/workflows/wangapayfast-rs.yml'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            wangapayfast-rs/target/
+          key: ${{ runner.os }}-cargo-format-${{ hashFiles('wangapayfast-rs/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-format-
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Run format check
+        working-directory: wangapayfast-rs
+        run: cargo fmt --check
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Format" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: format
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            wangapayfast-rs/target/
+          key: ${{ runner.os }}-cargo-lint-${{ hashFiles('wangapayfast-rs/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-lint-
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy
+
+      - name: Run clippy
+        working-directory: wangapayfast-rs
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Lint" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    needs: lint
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            wangapayfast-rs/target/
+          key: ${{ runner.os }}-cargo-check-${{ hashFiles('wangapayfast-rs/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-check-
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Run cargo check
+        working-directory: wangapayfast-rs
+        run: cargo check --all-features
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Check" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: check
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            wangapayfast-rs/target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('wangapayfast-rs/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-test-
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Run tests
+        working-directory: wangapayfast-rs
+        run: cargo test --all-features
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Test" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  version-bump:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      version: ${{ steps.bump.outputs.new_version }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get current version
+        id: current
+        working-directory: wangapayfast-rs
+        run: |
+          V=$(grep '^version = ' Cargo.toml | sed -n 's/.*"\([^"]*\)".*/\1/p')
+          echo "version=$V" >> $GITHUB_OUTPUT
+          echo "Current version: $V"
+
+      - name: Bump patch version
+        id: bump
+        working-directory: wangapayfast-rs
+        run: |
+          V="${{ steps.current.outputs.version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$V"
+          PATCH=$((PATCH + 1))
+          NEW="${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_version=$NEW" >> $GITHUB_OUTPUT
+          sed -i "s/^version = \".*\"/version = \"$NEW\"/" Cargo.toml
+          echo "New version: $NEW"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push version
+        run: |
+          git add wangapayfast-rs/Cargo.toml
+          if git diff --staged --quiet; then
+            echo "No version change to commit"
+          else
+            git commit -m "chore(wangapayfast-rs): bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
+            git push origin main
+          fi
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Bump Version" >> $GITHUB_STEP_SUMMARY
+          echo "**New version:** ${{ steps.bump.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: version-bump
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull latest (version bump)
+        run: git pull origin main || true
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            wangapayfast-rs/target/
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('wangapayfast-rs/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Build release
+        working-directory: wangapayfast-rs
+        run: cargo build --release
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Build" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  get-version:
+    name: Get Version
+    runs-on: ubuntu-latest
+    needs: [version-bump, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull latest
+        run: git pull origin main || true
+
+      - name: Get version
+        id: version
+        working-directory: wangapayfast-rs
+        run: |
+          V=$(grep '^version = ' Cargo.toml | sed -n 's/.*"\([^"]*\)".*/\1/p')
+          echo "version=$V" >> $GITHUB_OUTPUT
+          echo "Version: $V"
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Get Version" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    needs: get-version
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull latest
+        run: git pull origin main || true
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Publish to crates.io
+        working-directory: wangapayfast-rs
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --allow-dirty
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Publish" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### If publish failed with \"verified email required\"" >> $GITHUB_STEP_SUMMARY
+          echo "Add and verify your email at [crates.io profile](https://crates.io/settings/profile) (account that owns \`CARGO_REGISTRY_TOKEN\`)." >> $GITHUB_STEP_SUMMARY
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [get-version, publish]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create tag and release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: wangapayfast-rs-v${{ needs.get-version.outputs.version }}
+          name: wangapayfast-rs v${{ needs.get-version.outputs.version }}
+          body: |
+            ## wangapayfast-rs ${{ needs.get-version.outputs.version }}
+            PayFast ITN and checkout signature helpers for Rust services.
+            - [crates.io](https://crates.io/crates/wangapayfast-rs)
+            - Documentation will be available via docs.rs after first publish.
+          draft: false
+          prerelease: false
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Release" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** wangapayfast-rs-v${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
+  monitor-failures:
+    name: Monitor Failed Jobs
+    runs-on: ubuntu-latest
+    if: always() && failure()
+    needs: [format, lint, check, test, version-bump, build, get-version, publish, release]
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+
+            const { data: jobsData } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+
+            const failedJobs = jobsData.jobs.filter(job =>
+              job.conclusion === 'failure' ||
+              job.conclusion === 'cancelled' ||
+              job.conclusion === 'timed_out'
+            );
+
+            if (failedJobs.length === 0) {
+              console.log('No failed jobs found');
+              return;
+            }
+
+            const branch = context.ref.replace('refs/heads/', '');
+            const title = `🚨 CI/CD Failure: wangapayfast-rs - ${branch} branch`;
+
+            let body = `## CI/CD Pipeline Failure\n\n`;
+            body += `**Workflow:** [wangapayfast-rs](${run.html_url})\n`;
+            body += `**Branch:** \`${branch}\`\n`;
+            body += `**Commit:** [${context.sha.substring(0, 7)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${context.sha})\n`;
+            body += `**Triggered by:** @${context.actor}\n`;
+            body += `**Started:** ${new Date(run.created_at).toISOString()}\n`;
+            body += `**Status:** ${run.status} / ${run.conclusion}\n\n`;
+
+            body += `### Failed Jobs (${failedJobs.length})\n\n`;
+            for (const job of failedJobs) {
+              body += `#### ❌ ${job.name}\n\n`;
+              body += `- **Status:** ${job.conclusion}\n`;
+              body += `- **Job URL:** [View Job](${job.html_url})\n`;
+              body += `- **Started:** ${job.started_at ? new Date(job.started_at).toISOString() : 'N/A'}\n`;
+              body += `- **Completed:** ${job.completed_at ? new Date(job.completed_at).toISOString() : 'N/A'}\n`;
+              if (job.steps && job.steps.length > 0) {
+                const failedSteps = job.steps.filter(step =>
+                  step.conclusion === 'failure' ||
+                  step.conclusion === 'cancelled' ||
+                  step.conclusion === 'timed_out'
+                );
+                if (failedSteps.length > 0) {
+                  body += `- **Failed Steps:**\n`;
+                  for (const step of failedSteps) {
+                    const stepUrl = `${job.html_url}#step:${step.number}:1`;
+                    body += `  - [\`${step.name}\`](${stepUrl}) (Step ${step.number}) - ${step.conclusion}\n`;
+                  }
+                }
+              }
+              body += `\n`;
+            }
+
+            body += `### Next Steps\n\n`;
+            body += `1. Review the failed job logs using the links above\n`;
+            body += `2. Check for common issues:\n`;
+            body += `   - **Format:** Run \`cargo fmt\` locally and ensure \`cargo fmt --check\` passes\n`;
+            body += `   - Dependency or build errors\n`;
+            body += `   - Test failures\n`;
+            body += `   - Version bump or publish issues\n`;
+            body += `3. Fix and push a new commit; close this issue once the pipeline passes\n\n`;
+            body += `---\n*This issue was automatically created by the CI/CD monitoring system.*\n`;
+            body += `*Workflow: \`.github/workflows/wangapayfast-rs.yml\`*\n`;
+
+            const milestoneTitle = 'CI/CD Failures';
+            let milestoneNumber = null;
+            try {
+              const { data: milestones } = await github.rest.issues.listMilestones({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open'
+              });
+              let milestone = milestones.find(m => m.title === milestoneTitle);
+              if (!milestone) {
+                const { data: newMilestone } = await github.rest.issues.createMilestone({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: milestoneTitle,
+                  description: 'Track all CI/CD pipeline failures across the repository',
+                  state: 'open'
+                });
+                milestone = newMilestone;
+              }
+              milestoneNumber = milestone.number;
+            } catch (e) {
+              console.log('Could not create/find milestone:', e.message);
+            }
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'ci-failure,wangapayfast-rs'
+            });
+
+            const existingIssue = issues.find(issue =>
+              issue.title === title || issue.title.includes(`wangapayfast-rs - ${branch}`)
+            );
+
+            if (existingIssue) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body,
+                state: 'open',
+                milestone: milestoneNumber
+              });
+              console.log(`Updated existing issue #${existingIssue.number}`);
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['ci-failure', 'wangapayfast-rs', 'bug', 'priority-high'],
+                milestone: milestoneNumber
+              });
+              console.log('Created new failure issue');
+            }
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Monitor Failed Jobs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Component:** wangapayfast-rs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Completed Steps" >> $GITHUB_STEP_SUMMARY
+          echo "- Checkout repository" >> $GITHUB_STEP_SUMMARY
+          echo "- Create/update failure issue" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** This job runs only when other jobs fail." >> $GITHUB_STEP_SUMMARY
+
