@@ -1,39 +1,39 @@
 //! # wangapayfast-rs
 //!
-//! Helpers for working with [PayFast](https://www.payfast.co.za/) ITN
-//! (Instant Transaction Notification) messages in Rust services.
+//! Helpers for working with [PayFast](https://www.payfast.co.za/) payments and
+//! ITN (Instant Transaction Notification) messages in Rust services.
 //!
 //! The main focus of this crate is:
 //! - Parsing the `application/x-www-form-urlencoded` ITN body
-//! - Re‐generating the PayFast signature
-//! - Verifying that the incoming ITN is authentic
-//!
-//! This crate intentionally does **not** make outbound HTTP requests. It only
-//! deals with the ITN payload you receive in your HTTP handler, so you can
-//! integrate it with any web framework.
+//! - Re‐generating and verifying the PayFast ITN signature
+//! - Strongly-typed access to common ITN fields (amounts, status, method, etc.)
+//! - Helper predicates for business notifications (paid / failed / cancelled)
+//! - Helpers to generate checkout signatures for custom integrations
+//! - Optional HTTP-based post-back verification to PayFast (`http` feature)
 //!
 //! ## Quick start
 //!
 //! ```no_run
 //! use std::collections::BTreeMap;
 //!
-//! use wangapayfast_rs::{ItnRequest, verify_itn_signature};
+//! use wangapayfast_rs::{ItnNotification, verify_itn_signature};
 //!
 //! # fn handler(raw_body: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
 //! // 1) Parse the raw `application/x-www-form-urlencoded` ITN body.
-//! let itn = ItnRequest::from_body(raw_body)?;
+//! let itn = ItnNotification::from_body(raw_body)?;
 //!
 //! // 2) Verify the signature using your PayFast passphrase (if configured).
 //! //    Pass `None` if you do not use a passphrase.
-//! if !verify_itn_signature(&itn, Some("your-payfast-passphrase")) {
+//! if !verify_itn_signature(&itn.raw, Some("your-payfast-passphrase")) {
 //!     // Invalid / forged ITN – reject
 //!     return Err("invalid ITN signature".into());
 //! }
 //!
 //! // 3) Use the parsed fields (amount, status, etc.) from `itn.params()`.
-//! let params: &BTreeMap<String, String> = itn.params();
-//! let payment_status = params.get("payment_status").cloned().unwrap_or_default();
-//! # let _ = payment_status;
+//! let status = itn.payment_status();
+//! if status.is_complete() && itn.is_gross_amount("100.00") {
+//!     // mark order as paid, trigger your own notifications, etc.
+//! }
 //! # Ok(())
 //! # }
 //! ```
@@ -59,6 +59,11 @@ mod itn;
 
 pub use crate::error::{Error, Result};
 pub use crate::itn::{
-    generate_itn_signature, verify_itn_signature, ItnRequest, PayFastConfig,
+    generate_checkout_signature, generate_itn_signature, verify_itn_signature,
+    CheckoutFieldOrder, CheckoutParams, ItnNotification, ItnPaymentStatus,
+    ItnRequest, PayFastConfig, PaymentMethod,
 };
+
+#[cfg(feature = "http")]
+pub use crate::itn::{post_back_validate_itn, ItnValidationOutcome};
 

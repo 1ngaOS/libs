@@ -17,6 +17,16 @@ serde_urlencoded = "0.7"
 thiserror = "2.0"
 url = "2.5"
 
+[features]
+default = []
+http = ["dep:reqwest"]
+
+[dependencies.reqwest]
+version = "0.12"
+optional = true
+default-features = false
+features = ["json", "rustls-tls"]
+
 [dev-dependencies]
 once_cell = "1.19"
 urlencoding = "2.1"
