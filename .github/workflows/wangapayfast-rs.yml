@@ -188,8 +188,17 @@ jobs:
         id: current
         working-directory: wangapayfast-rs
         run: |
-          V=$(grep '^version = ' Cargo.toml | sed -n 's/.*"\([^"]*\)".*/\1/p')
-          echo "version=$V" >> $GITHUB_OUTPUT
+          # Extract version from Cargo.toml (first matching line)
+          LINE=$(grep -m 1 '^version = ' Cargo.toml || echo "")
+          V=$(printf '%s\n' "$LINE" | sed -n 's/.*"\([0-9]\+\.[0-9]\+\.[0-9]\+\)".*/\1/p')
+
+          if [ -z "$V" ]; then
+            echo "Error: Failed to extract semver version from Cargo.toml" >&2
+            grep -n '^version' Cargo.toml || echo "No version line found"
+            exit 1
+          fi
+
+          echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Current version: $V"
 
       - name: Bump patch version
