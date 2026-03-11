@@ -1,0 +1,23 @@
+[package]
+name = "wangapayfast-rs"
+version = "0.1.0"
+edition = "2021"
+description = "PayFast ITN (Instant Transaction Notification) verification helpers for Rust services"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/1ngaOS/libs/tree/main/wangapayfast-rs"
+keywords = ["payfast", "payments", "itn", "webhook", "signature"]
+categories = ["web-programming::http-server", "cryptography::cryptocurrencies"]
+authors = ["Your Name <you@example.com>"]
+
+[dependencies]
+md5 = "0.7"
+serde = { version = "1.0", features = ["derive"] }
+serde_urlencoded = "0.7"
+thiserror = "2.0"
+url = "2.5"
+
+[dev-dependencies]
+once_cell = "1.19"
+urlencoding = "2.1"
+
