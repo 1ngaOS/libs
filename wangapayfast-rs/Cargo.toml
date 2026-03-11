@@ -45,11 +45,11 @@ version = "1.0"
 optional = true
 
 [dependencies.async-graphql]
-version = "7"
+version = "7.2"
 optional = true
 
 [dependencies.async-graphql-axum]
-version = "7"
+version = "7.2"
 optional = true
 
 [dev-dependencies]
