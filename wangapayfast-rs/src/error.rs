@@ -15,6 +15,10 @@ pub enum Error {
     #[error("missing `signature` field in ITN payload")]
     MissingSignature,
 
+    /// Invalid request / configuration for a PayFast operation.
+    #[error("validation error: {0}")]
+    Validation(String),
+
     /// HTTP error while calling PayFast (API / post-back validation).
     #[cfg(feature = "api")]
     #[error("http error: {0}")]

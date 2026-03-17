@@ -3,8 +3,10 @@ use std::collections::BTreeMap;
 use once_cell::sync::Lazy;
 use wangapayfast_rs::{
     build_custom_checkout, build_once_off_checkout, generate_checkout_signature,
-    generate_itn_signature, verify_itn_signature, CheckoutFieldOrder, CheckoutParams,
-    ItnNotification, ItnRequest, OnceOffPaymentRequest, PayFastConfig, PaymentMethod,
+    generate_itn_signature, try_build_checkout, try_build_custom_checkout,
+    try_generate_checkout_signature, verify_itn_signature, CheckoutFieldOrder, CheckoutParams,
+    CheckoutRequest, ItnNotification, ItnRequest, OnceOffPaymentRequest, PayFastConfig,
+    PaymentMethod,
 };
 
 static SAMPLE_PARAMS: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
@@ -204,4 +206,38 @@ fn checkout_signature_excludes_unknown_fields() {
     let sig_a = generate_checkout_signature(&params_a, cfg.passphrase.as_deref(), &order);
     let sig_b = generate_checkout_signature(&params_b, cfg.passphrase.as_deref(), &order);
     assert_eq!(sig_a, sig_b);
+}
+
+#[test]
+fn subscriptions_require_passphrase_for_checked_signature() {
+    let mut params: CheckoutParams = BTreeMap::new();
+    params.insert("merchant_id".to_string(), "10000100".to_string());
+    params.insert("merchant_key".to_string(), "46f0cd694581a".to_string());
+    params.insert("amount".to_string(), "100.00".to_string());
+    params.insert("item_name".to_string(), "Sub order".to_string());
+    params.insert("subscription_type".to_string(), "1".to_string());
+
+    let order = CheckoutFieldOrder::default();
+    let err = try_generate_checkout_signature(&params, None, &order)
+        .expect_err("should require passphrase for subscriptions");
+    assert!(err.to_string().contains("passphrase"));
+}
+
+#[test]
+fn checked_checkout_requires_merchant_creds() {
+    let cfg = PayFastConfig::new(Some("passphrase"));
+    let req = CheckoutRequest {
+        amount: Some("10.00".into()),
+        item_name: Some("Test".into()),
+        ..Default::default()
+    };
+
+    let err = try_build_checkout(&cfg, true, req, None).expect_err("missing creds");
+    assert!(err.to_string().contains("merchant_id"));
+
+    let mut params: CheckoutParams = BTreeMap::new();
+    params.insert("amount".into(), "10.00".into());
+    params.insert("item_name".into(), "Test".into());
+    let err = try_build_custom_checkout(&cfg, true, params, None).expect_err("missing creds");
+    assert!(err.to_string().contains("merchant_id"));
 }

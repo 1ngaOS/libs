@@ -419,6 +419,27 @@ pub fn generate_checkout_signature(
     format!("{:x}", digest)
 }
 
+/// Generate a checkout signature, enforcing PayFast rules that require a
+/// passphrase for some functionality (e.g. subscriptions / tokenization).
+pub fn try_generate_checkout_signature(
+    params: &CheckoutParams,
+    passphrase: Option<&str>,
+    order: &CheckoutFieldOrder,
+) -> Result<String> {
+    let is_subscription = params
+        .get("subscription_type")
+        .map(|v| !v.trim().is_empty())
+        .unwrap_or(false);
+
+    if is_subscription && passphrase.map(|p| p.trim().is_empty()).unwrap_or(true) {
+        return Err(Error::Validation(
+            "subscriptions require a passphrase to be set".to_string(),
+        ));
+    }
+
+    Ok(generate_checkout_signature(params, passphrase, order))
+}
+
 /// Result of an HTTP post‑back validation to PayFast.
 #[cfg(feature = "http")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

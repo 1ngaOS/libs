@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{generate_checkout_signature, CheckoutFieldOrder, CheckoutParams, PayFastConfig};
+use crate::{
+    generate_checkout_signature, try_generate_checkout_signature, CheckoutFieldOrder,
+    CheckoutParams, Error, PayFastConfig, Result,
+};
 
 /// Split payment JSON payload (`setup`) for PayFast split payments.
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -353,6 +356,56 @@ pub fn build_checkout(
     CheckoutResponse { url, params }
 }
 
+/// Same as [`build_checkout`] but performs basic validation and returns an
+/// error on invalid configuration (e.g. missing merchant creds, missing
+/// passphrase for subscriptions).
+pub fn try_build_checkout(
+    cfg: &PayFastConfig,
+    sandbox: bool,
+    req: CheckoutRequest,
+    order: Option<CheckoutFieldOrder>,
+) -> Result<CheckoutResponse> {
+    let mut params = req.into_params();
+    if let Some(id) = &cfg.merchant_id {
+        params
+            .entry("merchant_id".into())
+            .or_insert_with(|| id.clone());
+    }
+    if let Some(key) = &cfg.merchant_key {
+        params
+            .entry("merchant_key".into())
+            .or_insert_with(|| key.clone());
+    }
+
+    if params
+        .get("merchant_id")
+        .map(|s| s.trim().is_empty())
+        .unwrap_or(true)
+    {
+        return Err(Error::Validation("merchant_id is required".to_string()));
+    }
+    if params
+        .get("merchant_key")
+        .map(|s| s.trim().is_empty())
+        .unwrap_or(true)
+    {
+        return Err(Error::Validation("merchant_key is required".to_string()));
+    }
+
+    let order = order.unwrap_or_default();
+    let sig = try_generate_checkout_signature(&params, cfg.passphrase.as_deref(), &order)?;
+    params.insert("signature".into(), sig);
+
+    let url = if sandbox {
+        "https://sandbox.payfast.co.za/eng/process"
+    } else {
+        "https://www.payfast.co.za/eng/process"
+    }
+    .to_string();
+
+    Ok(CheckoutResponse { url, params })
+}
+
 /// Build a custom-integration checkout response from arbitrary parameters.
 ///
 /// This helper is useful when you want full control over the fields you send
@@ -392,6 +445,54 @@ pub fn build_custom_checkout(
     .to_string();
 
     CheckoutResponse { url, params }
+}
+
+/// Same as [`build_custom_checkout`] but performs basic validation and returns
+/// an error instead of silently producing incomplete parameters.
+pub fn try_build_custom_checkout(
+    cfg: &PayFastConfig,
+    sandbox: bool,
+    mut params: CheckoutParams,
+    order: Option<CheckoutFieldOrder>,
+) -> Result<CheckoutResponse> {
+    if let Some(id) = &cfg.merchant_id {
+        params
+            .entry("merchant_id".into())
+            .or_insert_with(|| id.clone());
+    }
+    if let Some(key) = &cfg.merchant_key {
+        params
+            .entry("merchant_key".into())
+            .or_insert_with(|| key.clone());
+    }
+
+    if params
+        .get("merchant_id")
+        .map(|s| s.trim().is_empty())
+        .unwrap_or(true)
+    {
+        return Err(Error::Validation("merchant_id is required".to_string()));
+    }
+    if params
+        .get("merchant_key")
+        .map(|s| s.trim().is_empty())
+        .unwrap_or(true)
+    {
+        return Err(Error::Validation("merchant_key is required".to_string()));
+    }
+
+    let order = order.unwrap_or_default();
+    let sig = try_generate_checkout_signature(&params, cfg.passphrase.as_deref(), &order)?;
+    params.insert("signature".into(), sig);
+
+    let url = if sandbox {
+        "https://sandbox.payfast.co.za/eng/process"
+    } else {
+        "https://www.payfast.co.za/eng/process"
+    }
+    .to_string();
+
+    Ok(CheckoutResponse { url, params })
 }
 
 fn build_params_from_once_off(cfg: &PayFastConfig, req: OnceOffPaymentRequest) -> CheckoutParams {
