@@ -189,6 +189,7 @@ jobs:
         working-directory: wangamail-rs
         run: |
           python3 - <<'PY'
+          import os
           import re
           from pathlib import Path
 
@@ -208,8 +209,11 @@ jobs:
                 break
           if not version:
             raise SystemExit("Error: Failed to extract [package].version from Cargo.toml")
-          out = Path("${GITHUB_OUTPUT}")
-          out.write_text(out.read_text(encoding="utf-8") + f"version={version}\n", encoding="utf-8")
+          out_path = os.environ.get("GITHUB_OUTPUT")
+          if not out_path:
+            raise SystemExit("Error: GITHUB_OUTPUT is not set")
+          with open(out_path, "a", encoding="utf-8") as f:
+            f.write(f"version={version}\n")
           print(f"Current version: {version}")
           PY
 
