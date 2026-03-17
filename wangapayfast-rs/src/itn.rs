@@ -389,22 +389,15 @@ pub fn generate_checkout_signature(
         filtered.insert(k.clone(), trimmed.to_string());
     }
 
-    // Sort keys by the preferred order; anything not in the list goes last in
-    // normal key order.
-    let mut keys: Vec<String> = filtered.keys().cloned().collect();
-    let priority: BTreeMap<&str, usize> = order
+    // IMPORTANT: PayFast checkout signature uses a fixed field order, and
+    // fields not in the canonical list are excluded (e.g. `setup` for split
+    // payments). This matches the official SDK behaviour.
+    let keys: Vec<&str> = order
         .0
         .iter()
-        .enumerate()
-        .map(|(i, k)| (k.as_str(), i))
+        .map(|s| s.as_str())
+        .filter(|k| filtered.contains_key(*k))
         .collect();
-
-    keys.sort_by_key(|k| {
-        priority
-            .get(k.as_str())
-            .copied()
-            .unwrap_or(order.0.len() + 1)
-    });
 
     let mut serializer = form_urlencoded::Serializer::new(String::new());
     for key in keys {
@@ -412,8 +405,8 @@ pub fn generate_checkout_signature(
         if key == "signature" || key == "setup" {
             continue;
         }
-        if let Some(value) = filtered.get(&key) {
-            serializer.append_pair(&key, value);
+        if let Some(value) = filtered.get(key) {
+            serializer.append_pair(key, value);
         }
     }
 

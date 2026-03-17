@@ -186,3 +186,22 @@ fn split_payments_setup_is_excluded_from_signature() {
     let sig_b = generate_checkout_signature(&params_b, cfg.passphrase.as_deref(), &order);
     assert_eq!(sig_a, sig_b);
 }
+
+#[test]
+fn checkout_signature_excludes_unknown_fields() {
+    let cfg = PayFastConfig::new(Some("passphrase")).with_merchant("10000100", "46f0cd694581a");
+
+    let mut params_a: CheckoutParams = BTreeMap::new();
+    params_a.insert("merchant_id".into(), "10000100".into());
+    params_a.insert("merchant_key".into(), "46f0cd694581a".into());
+    params_a.insert("amount".into(), "10.00".into());
+    params_a.insert("item_name".into(), "Unknown field test".into());
+
+    let mut params_b = params_a.clone();
+    params_b.insert("some_future_field".into(), "value".into());
+
+    let order = CheckoutFieldOrder::default();
+    let sig_a = generate_checkout_signature(&params_a, cfg.passphrase.as_deref(), &order);
+    let sig_b = generate_checkout_signature(&params_b, cfg.passphrase.as_deref(), &order);
+    assert_eq!(sig_a, sig_b);
+}

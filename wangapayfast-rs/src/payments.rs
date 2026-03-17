@@ -4,6 +4,32 @@ use serde::{Deserialize, Serialize};
 
 use crate::{generate_checkout_signature, CheckoutFieldOrder, CheckoutParams, PayFastConfig};
 
+/// Split payment JSON payload (`setup`) for PayFast split payments.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SplitPaymentSetup {
+    /// The split rule payload.
+    pub split_payment: SplitPaymentRule,
+}
+
+/// Rule for how a payment is split with a third party merchant.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SplitPaymentRule {
+    /// Third-party merchant id.
+    pub merchant_id: u64,
+    /// Fixed split amount in cents (optional if `percentage` is set).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub amount: Option<u64>,
+    /// Percentage split (optional if `amount` is set).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub percentage: Option<u64>,
+    /// Minimum split amount in cents.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min: Option<u64>,
+    /// Maximum split amount in cents.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max: Option<u64>,
+}
+
 /// High-level request for a once-off PayFast payment.
 #[derive(Debug, Clone, Deserialize)]
 pub struct OnceOffPaymentRequest {
@@ -99,6 +125,9 @@ pub struct SplitPayment {
     /// Per PayFast docs this is **not included** in the signature. The crate
     /// automatically excludes `setup` when generating checkout signatures.
     pub setup: Option<String>,
+    /// Typed split-payment payload. If provided, it will be serialized into
+    /// the `setup` field (unless `setup` is already set).
+    pub setup_payload: Option<SplitPaymentSetup>,
     /// Extra key/value metadata for custom split encodings.
     #[serde(default)]
     pub custom: BTreeMap<String, String>,
@@ -125,6 +154,203 @@ pub struct CheckoutResponse {
     pub url: String,
     /// The form parameters (including `signature`) that must be posted.
     pub params: BTreeMap<String, String>,
+}
+
+/// Full custom integration checkout request (typed).
+///
+/// This structure mirrors the PayFast “Create your checkout form” field list,
+/// plus recurring billing and split payments fields.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct CheckoutRequest {
+    // Merchant details
+    /// The URL where the user is returned after successful payment (`return_url`).
+    pub return_url: Option<String>,
+    /// The URL where the user is returned after cancelling payment (`cancel_url`).
+    pub cancel_url: Option<String>,
+    /// The URL PayFast posts ITN notifications to (`notify_url`).
+    pub notify_url: Option<String>,
+    /// Notify method override (`notify_method`).
+    pub notify_method: Option<String>,
+    /// Buyer FICA id number (`fica_id`).
+    pub fica_id: Option<String>,
+
+    // Customer details
+    /// Customer first name (`name_first`).
+    pub name_first: Option<String>,
+    /// Customer last name (`name_last`).
+    pub name_last: Option<String>,
+    /// Customer email address (`email_address`).
+    pub email_address: Option<String>,
+    /// Customer cell number (`cell_number`).
+    pub cell_number: Option<String>,
+
+    // Transaction details
+    /// Merchant payment id (`m_payment_id`).
+    pub m_payment_id: Option<String>,
+    /// Payment amount (`amount`).
+    pub amount: Option<String>,
+    /// Item / order name (`item_name`).
+    pub item_name: Option<String>,
+    /// Item description (`item_description`).
+    pub item_description: Option<String>,
+    /// Custom integer pass-through (`custom_int1`).
+    pub custom_int1: Option<String>,
+    /// Custom integer pass-through (`custom_int2`).
+    pub custom_int2: Option<String>,
+    /// Custom integer pass-through (`custom_int3`).
+    pub custom_int3: Option<String>,
+    /// Custom integer pass-through (`custom_int4`).
+    pub custom_int4: Option<String>,
+    /// Custom integer pass-through (`custom_int5`).
+    pub custom_int5: Option<String>,
+    /// Custom string pass-through (`custom_str1`).
+    pub custom_str1: Option<String>,
+    /// Custom string pass-through (`custom_str2`).
+    pub custom_str2: Option<String>,
+    /// Custom string pass-through (`custom_str3`).
+    pub custom_str3: Option<String>,
+    /// Custom string pass-through (`custom_str4`).
+    pub custom_str4: Option<String>,
+    /// Custom string pass-through (`custom_str5`).
+    pub custom_str5: Option<String>,
+
+    // Transaction options
+    /// Whether to send a merchant email confirmation (`email_confirmation`).
+    pub email_confirmation: Option<bool>,
+    /// Override confirmation email address (`confirmation_address`).
+    pub confirmation_address: Option<String>,
+
+    // Currency + method
+    /// Currency code (`currency`).
+    pub currency: Option<String>,
+    /// Payment method code (`payment_method`), e.g. `cc`, `ef`, etc.
+    pub payment_method: Option<String>,
+
+    // Recurring billing
+    /// Subscription type (`subscription_type`).
+    pub subscription_type: Option<String>,
+    /// Billing date (`billing_date`, `YYYY-MM-DD`).
+    pub billing_date: Option<String>,
+    /// Future recurring amount (`recurring_amount`).
+    pub recurring_amount: Option<String>,
+    /// Subscription frequency (`frequency`).
+    pub frequency: Option<String>,
+    /// Subscription cycles (`cycles`).
+    pub cycles: Option<String>,
+    /// Notify merchant by email (`subscription_notify_email`).
+    pub subscription_notify_email: Option<bool>,
+    /// Notify merchant by webhook (`subscription_notify_webhook`).
+    pub subscription_notify_webhook: Option<bool>,
+    /// Notify buyer by email (`subscription_notify_buyer`).
+    pub subscription_notify_buyer: Option<bool>,
+
+    // Split payments
+    /// Split payments JSON payload (`setup`). Not included in signature.
+    pub setup: Option<String>,
+}
+
+impl CheckoutRequest {
+    fn into_params(self) -> CheckoutParams {
+        let mut p = CheckoutParams::new();
+        macro_rules! opt {
+            ($k:literal, $v:expr) => {
+                if let Some(v) = $v {
+                    p.insert($k.to_string(), v);
+                }
+            };
+        }
+        macro_rules! opt_bool01 {
+            ($k:literal, $v:expr) => {
+                if let Some(v) = $v {
+                    p.insert($k.to_string(), if v { "1" } else { "0" }.to_string());
+                }
+            };
+        }
+
+        opt!("return_url", self.return_url);
+        opt!("cancel_url", self.cancel_url);
+        opt!("notify_url", self.notify_url);
+        opt!("notify_method", self.notify_method);
+        opt!("fica_id", self.fica_id);
+
+        opt!("name_first", self.name_first);
+        opt!("name_last", self.name_last);
+        opt!("email_address", self.email_address);
+        opt!("cell_number", self.cell_number);
+
+        opt!("m_payment_id", self.m_payment_id);
+        opt!("amount", self.amount);
+        opt!("item_name", self.item_name);
+        opt!("item_description", self.item_description);
+        opt!("custom_int1", self.custom_int1);
+        opt!("custom_int2", self.custom_int2);
+        opt!("custom_int3", self.custom_int3);
+        opt!("custom_int4", self.custom_int4);
+        opt!("custom_int5", self.custom_int5);
+        opt!("custom_str1", self.custom_str1);
+        opt!("custom_str2", self.custom_str2);
+        opt!("custom_str3", self.custom_str3);
+        opt!("custom_str4", self.custom_str4);
+        opt!("custom_str5", self.custom_str5);
+
+        opt_bool01!("email_confirmation", self.email_confirmation);
+        opt!("confirmation_address", self.confirmation_address);
+
+        opt!("currency", self.currency);
+        opt!("payment_method", self.payment_method);
+
+        opt!("subscription_type", self.subscription_type);
+        opt!("billing_date", self.billing_date);
+        opt!("recurring_amount", self.recurring_amount);
+        opt!("frequency", self.frequency);
+        opt!("cycles", self.cycles);
+        opt_bool01!("subscription_notify_email", self.subscription_notify_email);
+        opt_bool01!(
+            "subscription_notify_webhook",
+            self.subscription_notify_webhook
+        );
+        opt_bool01!("subscription_notify_buyer", self.subscription_notify_buyer);
+
+        opt!("setup", self.setup);
+
+        p
+    }
+}
+
+/// Build a typed checkout response for PayFast custom integration.
+///
+/// This injects `merchant_id` and `merchant_key` from [`PayFastConfig`], then
+/// generates `signature` using the checkout signature algorithm.
+pub fn build_checkout(
+    cfg: &PayFastConfig,
+    sandbox: bool,
+    req: CheckoutRequest,
+    order: Option<CheckoutFieldOrder>,
+) -> CheckoutResponse {
+    let mut params = req.into_params();
+    if let Some(id) = &cfg.merchant_id {
+        params
+            .entry("merchant_id".into())
+            .or_insert_with(|| id.clone());
+    }
+    if let Some(key) = &cfg.merchant_key {
+        params
+            .entry("merchant_key".into())
+            .or_insert_with(|| key.clone());
+    }
+
+    let order = order.unwrap_or_default();
+    let sig = generate_checkout_signature(&params, cfg.passphrase.as_deref(), &order);
+    params.insert("signature".into(), sig);
+
+    let url = if sandbox {
+        "https://sandbox.payfast.co.za/eng/process"
+    } else {
+        "https://www.payfast.co.za/eng/process"
+    }
+    .to_string();
+
+    CheckoutResponse { url, params }
 }
 
 /// Build a custom-integration checkout response from arbitrary parameters.
@@ -276,7 +502,11 @@ fn apply_split(params: &mut CheckoutParams, split: SplitPayment) {
     if let Some(v) = split.secondary_amount {
         params.insert("custom_str5".into(), v);
     }
-    if let Some(v) = split.setup {
+    if let Some(v) = split.setup.or_else(|| {
+        split
+            .setup_payload
+            .and_then(|p| serde_json::to_string(&p).ok())
+    }) {
         params.insert("setup".into(), v);
     }
     for (k, v) in split.custom {

@@ -71,9 +71,9 @@ pub use crate::itn::{
     CheckoutParams, ItnNotification, ItnPaymentStatus, ItnRequest, PayFastConfig, PaymentMethod,
 };
 pub use crate::payments::{
-    build_custom_checkout, build_once_off_checkout, build_subscription_checkout,
-    AdvancedPaymentRequest, CheckoutResponse, OnceOffPaymentRequest, SplitPayment,
-    SubscriptionOptions,
+    build_checkout, build_custom_checkout, build_once_off_checkout, build_subscription_checkout,
+    AdvancedPaymentRequest, CheckoutRequest, CheckoutResponse, OnceOffPaymentRequest, SplitPayment,
+    SplitPaymentRule, SplitPaymentSetup, SubscriptionOptions,
 };
 
 #[cfg(feature = "http")]
