@@ -196,13 +196,39 @@ impl ItnPaymentStatus {
 /// Normalised PayFast `payment_method` values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PaymentMethod {
-    /// Credit / debit card.
-    Card,
-    /// Instant EFT.
-    EftInstant,
-    /// Standard EFT.
+    /// Payflex (Buy Now, Pay Later).
+    Payflex,
+    /// Google Pay.
+    GooglePay,
+    /// Capitec Pay.
+    CapitecPay,
+    /// Samsung Pay.
+    SamsungPay,
+    /// Apple Pay.
+    ApplePay,
+    /// Mukuru.
+    Mukuru,
+    /// Store card.
+    StoreCard,
+    /// MoreTyme.
+    MoreTyme,
+    /// Zapper.
+    Zapper,
+    /// SnapScan.
+    SnapScan,
+    /// SCode.
+    SCode,
+    /// MobiCred.
+    MobiCred,
+    /// Masterpass Scan to Pay.
+    Masterpass,
+    /// Debit card.
+    DebitCard,
+    /// Credit card.
+    CreditCard,
+    /// EFT.
     Eft,
-    /// Cash / other methods (e.g. Masterpass, SnapScan, etc.).
+    /// Other / unknown method string.
     #[default]
     Other,
 }
@@ -210,9 +236,22 @@ pub enum PaymentMethod {
 impl From<&str> for PaymentMethod {
     fn from(s: &str) -> Self {
         match s.to_ascii_lowercase().as_str() {
-            "cc" | "card" => PaymentMethod::Card,
-            "eft" => PaymentMethod::Eft,
-            "eft_instant" | "eftinstant" => PaymentMethod::EftInstant,
+            "pf" | "payflex" => PaymentMethod::Payflex,
+            "gp" | "googlepay" | "google_pay" => PaymentMethod::GooglePay,
+            "cp" | "capitecpay" | "capitec_pay" => PaymentMethod::CapitecPay,
+            "sp" | "samsungpay" | "samsung_pay" => PaymentMethod::SamsungPay,
+            "ap" | "applepay" | "apple_pay" => PaymentMethod::ApplePay,
+            "mu" | "mukuru" => PaymentMethod::Mukuru,
+            "rc" | "storecard" | "store_card" => PaymentMethod::StoreCard,
+            "mt" | "moretyme" | "more_tyme" => PaymentMethod::MoreTyme,
+            "zp" | "zapper" => PaymentMethod::Zapper,
+            "ss" | "snapscan" | "snap_scan" => PaymentMethod::SnapScan,
+            "sc" | "scode" | "s_code" => PaymentMethod::SCode,
+            "mc" | "mobicred" | "mobi_cred" => PaymentMethod::MobiCred,
+            "mp" | "masterpass" | "masterpass_scan_to_pay" => PaymentMethod::Masterpass,
+            "dc" | "debitcard" | "debit_card" => PaymentMethod::DebitCard,
+            "cc" | "creditcard" | "credit_card" | "card" => PaymentMethod::CreditCard,
+            "ef" | "eft" => PaymentMethod::Eft,
             _ => PaymentMethod::Other,
         }
     }
@@ -282,6 +321,8 @@ impl Default for CheckoutFieldOrder {
             "return_url",
             "cancel_url",
             "notify_url",
+            "notify_method",
+            "fica_id",
             // Buyer Detail
             "name_first",
             "name_last",
@@ -305,6 +346,7 @@ impl Default for CheckoutFieldOrder {
             // Transaction Options
             "email_confirmation",
             "confirmation_address",
+            "currency",
             // Set Payment Method
             "payment_method",
             // Recurring Billing Details
@@ -313,6 +355,9 @@ impl Default for CheckoutFieldOrder {
             "recurring_amount",
             "frequency",
             "cycles",
+            "subscription_notify_email",
+            "subscription_notify_webhook",
+            "subscription_notify_buyer",
         ]
         .into_iter()
         .map(|s| s.to_string())
@@ -363,7 +408,8 @@ pub fn generate_checkout_signature(
 
     let mut serializer = form_urlencoded::Serializer::new(String::new());
     for key in keys {
-        if key == "signature" {
+        // `setup` (split payments) is not included in signature as per PayFast docs.
+        if key == "signature" || key == "setup" {
             continue;
         }
         if let Some(value) = filtered.get(&key) {

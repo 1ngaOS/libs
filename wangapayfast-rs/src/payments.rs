@@ -16,6 +16,17 @@ pub struct OnceOffPaymentRequest {
     /// Optional description.
     pub item_description: Option<String>,
 
+    /// Optional currency code (e.g. `"ZAR"`, `"USD"`) for integrations that
+    /// support it.
+    ///
+    /// Mapped to the `currency` field, as used by the official PayFast SDKs.
+    pub currency: Option<String>,
+
+    /// Legacy alias for [`OnceOffPaymentRequest::currency`].
+    ///
+    /// If set, it is mapped to the same `currency` field.
+    pub currency_code: Option<String>,
+
     /// Buyer first name.
     pub name_first: Option<String>,
     /// Buyer last name.
@@ -32,11 +43,20 @@ pub struct OnceOffPaymentRequest {
     /// Notify URL for ITN callbacks; if omitted you can configure this in the
     /// PayFast dashboard.
     pub notify_url: Option<String>,
+    /// Optional notify method (`notify_method`).
+    pub notify_method: Option<String>,
+    /// Optional buyer FICA id number (`fica_id`) for SA ID numbers.
+    pub fica_id: Option<String>,
 
     /// Optional arbitrary custom fields (mapped to `custom_str*/custom_int*` or
     /// any other supported PayFast field names).
     #[serde(default)]
     pub custom: BTreeMap<String, String>,
+
+    /// Transaction option: email confirmation flag (`email_confirmation`).
+    pub email_confirmation: Option<bool>,
+    /// Transaction option: override confirmation email address (`confirmation_address`).
+    pub confirmation_address: Option<String>,
 }
 
 /// Subscription / recurring payment options.
@@ -52,6 +72,16 @@ pub struct SubscriptionOptions {
     pub frequency: Option<String>,
     /// Number of cycles (`cycles`).
     pub cycles: Option<String>,
+
+    /// Send the merchant an email notification before a trial ends or amount increases
+    /// (`subscription_notify_email`).
+    pub subscription_notify_email: Option<bool>,
+    /// Send the merchant a webhook notification before a trial ends or amount increases
+    /// (`subscription_notify_webhook`).
+    pub subscription_notify_webhook: Option<bool>,
+    /// Send the buyer an email notification before a trial ends or amount increases
+    /// (`subscription_notify_buyer`).
+    pub subscription_notify_buyer: Option<bool>,
 }
 
 /// Split payment settings (high-level; encoded into custom fields).
@@ -64,6 +94,11 @@ pub struct SplitPayment {
     pub secondary_receiver: Option<String>,
     /// Optional amount to allocate to the secondary receiver.
     pub secondary_amount: Option<String>,
+    /// JSON encoded split-payment payload for PayFast (`setup`).
+    ///
+    /// Per PayFast docs this is **not included** in the signature. The crate
+    /// automatically excludes `setup` when generating checkout signatures.
+    pub setup: Option<String>,
     /// Extra key/value metadata for custom split encodings.
     #[serde(default)]
     pub custom: BTreeMap<String, String>,
@@ -92,6 +127,47 @@ pub struct CheckoutResponse {
     pub params: BTreeMap<String, String>,
 }
 
+/// Build a custom-integration checkout response from arbitrary parameters.
+///
+/// This helper is useful when you want full control over the fields you send
+/// to PayFast (for example, when mirroring the examples in the official
+/// custom integration docs or adding advanced options that are not modelled
+/// by [`OnceOffPaymentRequest`]).
+///
+/// - `params` should include all PayFast fields **except** `signature`.
+/// - `cfg.merchant_id` / `cfg.merchant_key` are injected if missing.
+/// - The signature is generated using [`generate_checkout_signature`].
+pub fn build_custom_checkout(
+    cfg: &PayFastConfig,
+    sandbox: bool,
+    mut params: CheckoutParams,
+    order: Option<CheckoutFieldOrder>,
+) -> CheckoutResponse {
+    if let Some(id) = &cfg.merchant_id {
+        params
+            .entry("merchant_id".into())
+            .or_insert_with(|| id.clone());
+    }
+    if let Some(key) = &cfg.merchant_key {
+        params
+            .entry("merchant_key".into())
+            .or_insert_with(|| key.clone());
+    }
+
+    let order = order.unwrap_or_default();
+    let sig = generate_checkout_signature(&params, cfg.passphrase.as_deref(), &order);
+    params.insert("signature".into(), sig);
+
+    let url = if sandbox {
+        "https://sandbox.payfast.co.za/eng/process"
+    } else {
+        "https://www.payfast.co.za/eng/process"
+    }
+    .to_string();
+
+    CheckoutResponse { url, params }
+}
+
 fn build_params_from_once_off(cfg: &PayFastConfig, req: OnceOffPaymentRequest) -> CheckoutParams {
     let mut params: CheckoutParams = BTreeMap::new();
 
@@ -108,6 +184,10 @@ fn build_params_from_once_off(cfg: &PayFastConfig, req: OnceOffPaymentRequest) -
 
     if let Some(desc) = req.item_description {
         params.insert("item_description".into(), desc);
+    }
+
+    if let Some(code) = req.currency.or(req.currency_code) {
+        params.insert("currency".into(), code);
     }
 
     if let Some(v) = req.name_first {
@@ -131,6 +211,22 @@ fn build_params_from_once_off(cfg: &PayFastConfig, req: OnceOffPaymentRequest) -
     }
     if let Some(v) = req.notify_url {
         params.insert("notify_url".into(), v);
+    }
+    if let Some(v) = req.notify_method {
+        params.insert("notify_method".into(), v);
+    }
+    if let Some(v) = req.fica_id {
+        params.insert("fica_id".into(), v);
+    }
+
+    if let Some(v) = req.email_confirmation {
+        params.insert(
+            "email_confirmation".into(),
+            if v { "1".to_string() } else { "0".to_string() },
+        );
+    }
+    if let Some(v) = req.confirmation_address {
+        params.insert("confirmation_address".into(), v);
     }
 
     for (k, v) in req.custom {
@@ -156,6 +252,16 @@ fn apply_subscription(params: &mut CheckoutParams, sub: SubscriptionOptions) {
     if let Some(v) = sub.cycles {
         params.insert("cycles".into(), v);
     }
+
+    if let Some(v) = sub.subscription_notify_email {
+        params.insert("subscription_notify_email".into(), v.to_string());
+    }
+    if let Some(v) = sub.subscription_notify_webhook {
+        params.insert("subscription_notify_webhook".into(), v.to_string());
+    }
+    if let Some(v) = sub.subscription_notify_buyer {
+        params.insert("subscription_notify_buyer".into(), v.to_string());
+    }
 }
 
 fn apply_split(params: &mut CheckoutParams, split: SplitPayment) {
@@ -169,6 +275,9 @@ fn apply_split(params: &mut CheckoutParams, split: SplitPayment) {
     }
     if let Some(v) = split.secondary_amount {
         params.insert("custom_str5".into(), v);
+    }
+    if let Some(v) = split.setup {
+        params.insert("setup".into(), v);
     }
     for (k, v) in split.custom {
         params.insert(k, v);

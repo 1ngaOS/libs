@@ -58,8 +58,11 @@
 
 #![warn(missing_docs)]
 
+#[cfg(feature = "api")]
+mod api;
 mod error;
 mod itn;
+mod onsite;
 mod payments;
 
 pub use crate::error::{Error, Result};
@@ -68,9 +71,22 @@ pub use crate::itn::{
     CheckoutParams, ItnNotification, ItnPaymentStatus, ItnRequest, PayFastConfig, PaymentMethod,
 };
 pub use crate::payments::{
-    build_once_off_checkout, build_subscription_checkout, AdvancedPaymentRequest, CheckoutResponse,
-    OnceOffPaymentRequest, SplitPayment, SubscriptionOptions,
+    build_custom_checkout, build_once_off_checkout, build_subscription_checkout,
+    AdvancedPaymentRequest, CheckoutResponse, OnceOffPaymentRequest, SplitPayment,
+    SubscriptionOptions,
 };
 
 #[cfg(feature = "http")]
 pub use crate::itn::{post_back_validate_itn, ItnValidationOutcome};
+
+#[cfg(feature = "api")]
+pub use crate::api::{
+    generate_api_signature, AdhocCharge, ApiEnvironment, PayFastApiClient, PayFastApiConfig,
+    RefundCreate, SubscriptionUpdate, TransactionHistoryByDate, TransactionHistoryByMonth,
+    TransactionHistoryRange,
+};
+
+pub use crate::onsite::{card_update_url, OnsiteEnvironment};
+
+#[cfg(feature = "onsite")]
+pub use crate::onsite::generate_payment_identifier;
