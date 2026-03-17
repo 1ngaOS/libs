@@ -188,18 +188,30 @@ jobs:
         id: current
         working-directory: wangapayfast-rs
         run: |
-          # Extract version from Cargo.toml (first matching line)
-          LINE=$(grep -m 1 '^version = ' Cargo.toml || echo "")
-          V=$(printf '%s\n' "$LINE" | sed -n 's/.*"\([0-9]\+\.[0-9]\+\.[0-9]\+\)".*/\1/p')
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
 
-          if [ -z "$V" ]; then
-            echo "Error: Failed to extract semver version from Cargo.toml" >&2
-            grep -n '^version' Cargo.toml || echo "No version line found"
-            exit 1
-          fi
-
-          echo "version=$V" >> "$GITHUB_OUTPUT"
-          echo "Current version: $V"
+          text = Path("Cargo.toml").read_text(encoding="utf-8")
+          in_package = False
+          version = None
+          for line in text.splitlines():
+            if re.match(r"^\s*\[package\]\s*$", line):
+              in_package = True
+              continue
+            if in_package and re.match(r"^\s*\[.*\]\s*$", line):
+              break
+            if in_package:
+              m = re.match(r'^\s*version\s*=\s*"(\d+\.\d+\.\d+)"\s*$', line)
+              if m:
+                version = m.group(1)
+                break
+          if not version:
+            raise SystemExit("Error: Failed to extract [package].version from Cargo.toml")
+          out = Path("${GITHUB_OUTPUT}")
+          out.write_text(out.read_text(encoding="utf-8") + f"version={version}\n", encoding="utf-8")
+          print(f"Current version: {version}")
+          PY
 
       - name: Bump patch version
         id: bump
@@ -210,8 +222,33 @@ jobs:
           PATCH=$((PATCH + 1))
           NEW="${MAJOR}.${MINOR}.${PATCH}"
           echo "new_version=$NEW" >> $GITHUB_OUTPUT
-          sed -i "s/^version = \".*\"/version = \"$NEW\"/" Cargo.toml
-          echo "New version: $NEW"
+          python3 - <<PY
+          import re
+          from pathlib import Path
+
+          NEW = "$NEW"
+          p = Path("Cargo.toml")
+          lines = p.read_text(encoding="utf-8").splitlines(True)
+          out = []
+          in_package = False
+          updated = False
+          for line in lines:
+            if re.match(r"^\s*\[package\]\s*$", line):
+              in_package = True
+              out.append(line)
+              continue
+            if in_package and re.match(r"^\s*\[.*\]\s*$", line) and not updated:
+              raise SystemExit("Error: [package].version not found before next table")
+            if in_package and re.match(r'^\s*version\s*=\s*".*"\s*$', line) and not updated:
+              out.append(re.sub(r'^\s*version\s*=\s*".*"\s*$', f'version = "{NEW}"', line))
+              updated = True
+              continue
+            out.append(line)
+          if not updated:
+            raise SystemExit("Error: Failed to update [package].version in Cargo.toml")
+          p.write_text("".join(out), encoding="utf-8")
+          print(f"New version: {NEW}")
+          PY
 
       - name: Configure Git
         run: |

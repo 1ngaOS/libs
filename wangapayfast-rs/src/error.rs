@@ -14,4 +14,32 @@ pub enum Error {
     /// The ITN payload did not contain a `signature` field.
     #[error("missing `signature` field in ITN payload")]
     MissingSignature,
+
+    /// Invalid request / configuration for a PayFast operation.
+    #[error("validation error: {0}")]
+    Validation(String),
+
+    /// HTTP error while calling PayFast (API / post-back validation).
+    #[cfg(feature = "api")]
+    #[error("http error: {0}")]
+    Http(#[from] reqwest::Error),
+
+    /// JSON serialization/deserialization error.
+    #[cfg(feature = "api")]
+    #[error("json error: {0}")]
+    Json(#[from] serde_json::Error),
+
+    /// Non-2xx response from PayFast API.
+    #[cfg(feature = "api")]
+    #[error("api http error: status={status} body={body}")]
+    ApiHttp {
+        /// HTTP status code.
+        status: u16,
+        /// Response body.
+        body: String,
+    },
+
+    /// Other error.
+    #[error("{0}")]
+    Other(String),
 }
