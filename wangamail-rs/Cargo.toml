@@ -1,7 +1,6 @@
 [package]
 name = "wangamail-rs"
-version = "0.1.10" 
-edition = "2021"
+version = "0.1.11"edition = "2021"
 description = "Send email via Microsoft Graph API using app registration (client credentials)"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
