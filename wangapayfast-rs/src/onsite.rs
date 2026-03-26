@@ -1,6 +1,9 @@
+#[cfg(feature = "onsite")]
 use serde::Deserialize;
 
+#[cfg(feature = "onsite")]
 use crate::error::{Error, Result};
+#[cfg(feature = "onsite")]
 use crate::{generate_checkout_signature, CheckoutFieldOrder, CheckoutParams, PayFastConfig};
 
 /// Onsite payments environment.
@@ -13,6 +16,7 @@ pub enum OnsiteEnvironment {
 }
 
 impl OnsiteEnvironment {
+    #[cfg(feature = "onsite")]
     fn process_url(self) -> &'static str {
         match self {
             OnsiteEnvironment::Live => "https://www.payfast.co.za/onsite/process",
@@ -28,6 +32,7 @@ impl OnsiteEnvironment {
     }
 }
 
+#[cfg(feature = "onsite")]
 #[derive(Debug, Deserialize)]
 struct IdentifierResponse {
     uuid: String,

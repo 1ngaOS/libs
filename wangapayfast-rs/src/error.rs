@@ -20,17 +20,17 @@ pub enum Error {
     Validation(String),
 
     /// HTTP error while calling PayFast (API / post-back validation).
-    #[cfg(feature = "api")]
+    #[cfg(any(feature = "api", feature = "onsite"))]
     #[error("http error: {0}")]
     Http(#[from] reqwest::Error),
 
     /// JSON serialization/deserialization error.
-    #[cfg(feature = "api")]
+    #[cfg(any(feature = "api", feature = "onsite"))]
     #[error("json error: {0}")]
     Json(#[from] serde_json::Error),
 
     /// Non-2xx response from PayFast API.
-    #[cfg(feature = "api")]
+    #[cfg(any(feature = "api", feature = "onsite"))]
     #[error("api http error: status={status} body={body}")]
     ApiHttp {
         /// HTTP status code.

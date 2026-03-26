@@ -14,6 +14,8 @@
 //! - Helper predicates for business notifications (paid / failed / cancelled)
 //! - Helpers to generate checkout signatures for custom integrations
 //! - Optional HTTP-based post-back verification to PayFast (`http` feature)
+//! - Optional API client helpers for subscriptions/refunds/transactions (`api` feature)
+//! - Optional onsite payment identifier generation (`onsite` feature)
 //!
 //! ## Quick start
 //!

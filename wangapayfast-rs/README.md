@@ -1,16 +1,17 @@
 # wangapayfast-rs
 
-Helpers for working with [PayFast](https://www.payfast.co.za/) ITN (Instant Transaction Notification)
-messages in Rust services.
+Helpers for working with [PayFast](https://www.payfast.co.za/) in Rust services:
+ITN verification, checkout payload/signature building, onsite helpers, and
+optional server-to-server API calls.
 
-This crate focuses on:
+This crate provides:
 
 - Parsing the `application/x-www-form-urlencoded` ITN body
-- Regenerating the PayFast signature according to their documentation
-- Verifying that an incoming ITN is authentic before you update your own records
-
-It intentionally does **not** make outbound HTTP requests – you can use it with
-any HTTP framework.
+- Regenerating and verifying PayFast signatures
+- Building once-off and subscription checkout payloads
+- Optional HTTP post-back ITN validation (`http` feature)
+- Optional API client for recurring/transactions/refunds (`api` feature)
+- Optional onsite payment-identifier helper (`onsite` feature)
 
 ## Usage
 
@@ -20,6 +21,23 @@ Add to your `Cargo.toml`:
 [dependencies]
 wangapayfast-rs = "0.1"
 ```
+
+Enable optional capabilities with features:
+
+```toml
+[dependencies]
+wangapayfast-rs = { version = "0.1", features = ["http", "api"] }
+```
+
+## Feature Flags
+
+- `default`: Core ITN parsing + signature helpers + checkout payload builders.
+- `http`: Adds HTTP post-back ITN validation against PayFast.
+- `api`: Adds async PayFast API client (subscriptions, transactions, refunds).
+- `onsite`: Adds onsite payment identifier generation helper.
+- `rest-api`: Adds Axum REST routes for checkout/ITN helper endpoints.
+- `graphql-api`: Adds GraphQL router for checkout operations.
+- `full`: Enables all optional features.
 
 Example (pseudo‑handler):
 
