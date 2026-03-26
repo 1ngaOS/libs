@@ -179,14 +179,14 @@ public sealed class PayFastClient
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    internal static string BuildSignaturePayload(
+    public static string BuildSignaturePayload(
         IReadOnlyDictionary<string, string> parameters,
         string? passphrase = null)
     {
         return BuildSignaturePayload(parameters, passphrase, excludeSetupField: true);
     }
 
-    internal static string BuildItnSignaturePayload(
+    public static string BuildItnSignaturePayload(
         IReadOnlyDictionary<string, string> parameters,
         string? passphrase = null)
     {
