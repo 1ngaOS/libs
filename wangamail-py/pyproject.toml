@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wangamail-py"
+version = "0.1.0"
+description = "Send email via Microsoft Graph API using app registration credentials"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT OR Apache-2.0" }
+authors = [
+  { name = "1nga Solutions" }
+]
+keywords = ["wangamail", "microsoft", "graph", "email", "oauth2"]
+dependencies = [
+]
+
+[project.urls]
+Homepage = "https://github.com/1ngaOS/libs"
+Repository = "https://github.com/1ngaOS/libs/tree/main/wangamail-py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

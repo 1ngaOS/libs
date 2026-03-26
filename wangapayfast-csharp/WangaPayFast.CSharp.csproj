@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>wangapayfast-csharp</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>1nga Solutions</Authors>
+    <Description>Helpers for building PayFast checkout payloads and signatures for .NET services.</Description>
+    <RepositoryUrl>https://github.com/1ngaOS/libs/tree/main/wangapayfast-csharp</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>payfast;payments;checkout;itn;south-africa</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+</Project>

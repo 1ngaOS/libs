@@ -1,0 +1,12 @@
+{
+  "name": "wangamail-py",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Python package metadata for monorepo tooling",
+  "scripts": {
+    "dev": "python -m wangamail_py",
+    "build": "python -m build",
+    "test": "pytest",
+    "lint": "python -m py_compile wangamail_py/*.py"
+  }
+}
