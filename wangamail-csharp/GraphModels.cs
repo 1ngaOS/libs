@@ -5,7 +5,6 @@ namespace WangaMail.CSharp;
 public enum BodyType
 {
     Text,
-    [JsonStringEnumMemberName("HTML")]
     Html
 }
 
@@ -38,11 +37,30 @@ public sealed class Recipient
 public sealed class MessageBody
 {
     [JsonPropertyName("contentType")]
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(BodyTypeJsonConverter))]
     public BodyType ContentType { get; set; } = BodyType.Text;
 
     [JsonPropertyName("content")]
     public string Content { get; set; } = string.Empty;
+}
+
+public sealed class BodyTypeJsonConverter : JsonConverter<BodyType>
+{
+    public override BodyType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var value = reader.GetString();
+        return value?.ToUpperInvariant() switch
+        {
+            "TEXT" => BodyType.Text,
+            "HTML" => BodyType.Html,
+            _ => throw new JsonException($"Invalid BodyType value: {value}")
+        };
+    }
+
+    public override void Write(Utf8JsonWriter writer, BodyType value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value == BodyType.Html ? "HTML" : "Text");
+    }
 }
 
 public sealed class FileAttachment
