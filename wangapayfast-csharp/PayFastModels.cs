@@ -8,6 +8,14 @@ public enum PayFastEnvironment
     Sandbox
 }
 
+public enum ItnPaymentStatus
+{
+    Unknown,
+    Complete,
+    Failed,
+    Cancelled
+}
+
 public sealed class PayFastConfig
 {
     public string? MerchantId { get; set; }
@@ -98,4 +106,10 @@ public sealed class CheckoutResponse
 {
     public string Url { get; set; } = string.Empty;
     public SortedDictionary<string, string> Params { get; set; } = new(StringComparer.Ordinal);
+}
+
+public sealed class OnsiteProcessResponse
+{
+    [JsonPropertyName("uuid")]
+    public string Uuid { get; set; } = string.Empty;
 }

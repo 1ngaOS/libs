@@ -183,10 +183,49 @@ public sealed class PayFastClient
         IReadOnlyDictionary<string, string> parameters,
         string? passphrase = null)
     {
+        return BuildSignaturePayload(parameters, passphrase, excludeSetupField: true);
+    }
+
+    internal static string BuildItnSignaturePayload(
+        IReadOnlyDictionary<string, string> parameters,
+        string? passphrase = null)
+    {
+        return BuildSignaturePayload(parameters, passphrase, excludeSetupField: false);
+    }
+
+    public static string GenerateItnSignature(
+        IReadOnlyDictionary<string, string> parameters,
+        string? passphrase = null)
+    {
+        var payload = BuildItnSignaturePayload(parameters, passphrase);
+        var bytes = Encoding.UTF8.GetBytes(payload);
+        var hash = MD5.HashData(bytes);
+        return Convert.ToHexStringLower(hash);
+    }
+
+    public static bool VerifyItnSignature(
+        ItnNotification itn,
+        string? passphrase = null)
+    {
+        ArgumentNullException.ThrowIfNull(itn);
+        if (string.IsNullOrWhiteSpace(itn.Signature))
+        {
+            return false;
+        }
+
+        var expected = GenerateItnSignature(itn.Raw, passphrase);
+        return string.Equals(expected, itn.Signature, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildSignaturePayload(
+        IReadOnlyDictionary<string, string> parameters,
+        string? passphrase,
+        bool excludeSetupField)
+    {
         var filtered = parameters
             .Where(pair => !string.Equals(pair.Key, "signature", StringComparison.OrdinalIgnoreCase))
             .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
-            .Where(pair => !string.Equals(pair.Key, "setup", StringComparison.Ordinal))
+            .Where(pair => !excludeSetupField || !string.Equals(pair.Key, "setup", StringComparison.Ordinal))
             .OrderBy(pair => pair.Key, StringComparer.Ordinal)
             .Select(pair => $"{pair.Key}={Uri.EscapeDataString(pair.Value).Replace("%20", "+")}");
 
