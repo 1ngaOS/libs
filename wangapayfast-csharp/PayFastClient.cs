@@ -176,7 +176,7 @@ public sealed class PayFastClient
         var payload = BuildSignaturePayload(parameters, passphrase);
         var bytes = Encoding.UTF8.GetBytes(payload);
         var hash = MD5.HashData(bytes);
-        return Convert.ToHexStringLower(hash);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     internal static string BuildSignaturePayload(
@@ -200,7 +200,7 @@ public sealed class PayFastClient
         var payload = BuildItnSignaturePayload(parameters, passphrase);
         var bytes = Encoding.UTF8.GetBytes(payload);
         var hash = MD5.HashData(bytes);
-        return Convert.ToHexStringLower(hash);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     public static bool VerifyItnSignature(
