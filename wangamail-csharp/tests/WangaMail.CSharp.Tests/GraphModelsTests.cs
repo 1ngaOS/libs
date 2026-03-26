@@ -1,5 +1,6 @@
 using System.Text.Json;
 using WangaMail.CSharp;
+using Xunit;
 
 namespace WangaMail.CSharp.Tests;
 
