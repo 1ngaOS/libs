@@ -264,8 +264,11 @@ jobs:
       - name: Restore
         run: dotnet restore wangamail-csharp/WangaMail.CSharp.csproj
 
+      - name: Build
+        run: dotnet build wangamail-csharp/WangaMail.CSharp.csproj -c Release --no-restore
+
       - name: Pack
-        run: dotnet pack wangamail-csharp/WangaMail.CSharp.csproj -c Release --no-restore
+        run: dotnet pack wangamail-csharp/WangaMail.CSharp.csproj -c Release --no-restore --no-build
 
       - name: Publish to NuGet
         env:
