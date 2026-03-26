@@ -20,9 +20,9 @@ url = "2.5"
 [features]
 default = []
 http = ["dep:reqwest"]
-api = ["dep:reqwest", "dep:tokio", "dep:serde_json", "dep:time"]
-onsite = ["dep:reqwest", "dep:serde_json"]
-rest-api = ["http", "dep:tokio", "dep:axum", "dep:serde_json"]
+api = ["dep:reqwest", "dep:tokio", "dep:time"]
+onsite = ["dep:reqwest"]
+rest-api = ["http", "dep:tokio", "dep:axum"]
 graphql-api = ["rest-api", "dep:async-graphql", "dep:async-graphql-axum"]
 full = ["http", "api", "onsite", "rest-api", "graphql-api"]
 
@@ -44,7 +44,6 @@ features = ["macros", "json"]
 
 [dependencies.serde_json]
 version = "1.0"
-optional = true
 
 [dependencies.async-graphql]
 version = "7.2"
