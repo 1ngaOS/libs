@@ -224,6 +224,9 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Restore
+        run: dotnet restore wangapayfast-csharp/WangaPayFast.CSharp.csproj
+
       - name: Validate NuGet key
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
@@ -233,8 +236,11 @@ jobs:
             exit 1
           fi
 
+      - name: Build
+        run: dotnet build wangapayfast-csharp/WangaPayFast.CSharp.csproj -c Release --no-restore
+
       - name: Pack
-        run: dotnet pack wangapayfast-csharp/WangaPayFast.CSharp.csproj -c Release -o ./artifacts
+        run: dotnet pack wangapayfast-csharp/WangaPayFast.CSharp.csproj -c Release -o ./artifacts --no-build --no-restore
 
       - name: Publish package
         env:
