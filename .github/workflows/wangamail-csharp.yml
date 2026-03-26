@@ -248,6 +248,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -270,12 +271,16 @@ jobs:
       - name: Pack
         run: dotnet pack wangamail-csharp/WangaMail.CSharp.csproj -c Release --no-restore --no-build
 
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: 1nga
+
       - name: Publish to NuGet
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           dotnet nuget push "wangamail-csharp/bin/Release/*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source "https://api.nuget.org/v3/index.json" \
             --skip-duplicate
 

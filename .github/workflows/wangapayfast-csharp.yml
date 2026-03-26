@@ -211,6 +211,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -227,27 +228,22 @@ jobs:
       - name: Restore
         run: dotnet restore wangapayfast-csharp/WangaPayFast.CSharp.csproj
 
-      - name: Validate NuGet key
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "Error: NUGET_API_KEY is empty or not configured in repository secrets."
-            exit 1
-          fi
-
       - name: Build
         run: dotnet build wangapayfast-csharp/WangaPayFast.CSharp.csproj -c Release --no-restore
 
       - name: Pack
         run: dotnet pack wangapayfast-csharp/WangaPayFast.CSharp.csproj -c Release -o ./artifacts --no-build --no-restore
 
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: 1nga
+
       - name: Publish package
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           dotnet nuget push "./artifacts/*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source "https://api.nuget.org/v3/index.json" \
             --skip-duplicate
 
