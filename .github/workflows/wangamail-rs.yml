@@ -203,7 +203,9 @@ jobs:
             if in_package and re.match(r"^\s*\[.*\]\s*$", line):
               break
             if in_package:
-              m = re.match(r'^\s*version\s*=\s*"(\d+\.\d+\.\d+)"\s*$', line)
+              # Be tolerant if the file was malformed and `edition` ended up on
+              # the same line as `version`.
+              m = re.match(r'^\s*version\s*=\s*"(\d+\.\d+\.\d+)"', line)
               if m:
                 version = m.group(1)
                 break
@@ -243,10 +245,18 @@ jobs:
               continue
             if in_package and re.match(r"^\s*\[.*\]\s*$", line) and not updated:
               raise SystemExit("Error: [package].version not found before next table")
-            if in_package and re.match(r'^\s*version\s*=\s*".*"\s*$', line) and not updated:
-              out.append(re.sub(r'^\s*version\s*=\s*".*"\s*$', f'version = "{NEW}"', line))
-              updated = True
-              continue
+            if in_package and not updated:
+              m = re.match(r'^(\s*)version\s*=\s*"[^"]*"(.*)$', line)
+              if m:
+                indent, rest = m.group(1), m.group(2)
+                out.append(f'{indent}version = "{NEW}"\n')
+                # If anything else got concatenated onto this line (e.g.
+                # `edition = "2021"`), split it back out.
+                rest_stripped = rest.strip()
+                if rest_stripped:
+                  out.append(f"{indent}{rest_stripped}\n")
+                updated = True
+                continue
             out.append(line)
           if not updated:
             raise SystemExit("Error: Failed to update [package].version in Cargo.toml")
