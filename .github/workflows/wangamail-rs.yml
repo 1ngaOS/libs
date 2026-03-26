@@ -348,7 +348,20 @@ jobs:
         id: version
         working-directory: wangamail-rs
         run: |
-          V=$(grep '^version = ' Cargo.toml | sed -n 's/.*"\([^"]*\)".*/\1/p')
+          V=$(awk '
+            $0 == "[package]" { in_pkg = 1; next }
+            in_pkg && /^\[/ { in_pkg = 0 }
+            in_pkg && /^version[[:space:]]*=/ {
+              if (match($0, /"[^"]+"/)) {
+                print substr($0, RSTART + 1, RLENGTH - 2)
+                exit
+              }
+            }
+          ' Cargo.toml)
+          if [ -z "$V" ]; then
+            echo "Error: Failed to extract package version from Cargo.toml"
+            exit 1
+          fi
           echo "version=$V" >> $GITHUB_OUTPUT
           echo "Version: $V"
 
