@@ -155,7 +155,15 @@ jobs:
             git commit -m "chore(wangamail-csharp): bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
             git fetch origin main || true
             git pull origin main --rebase || git pull origin main --no-rebase || true
-            git push origin main || git push origin main --force-with-lease
+            # Retry push to avoid stale-ref/lock failures when remote updates
+            for _ in 1 2 3; do
+              if git push origin main; then
+                break
+              fi
+              git fetch origin main || true
+              git pull origin main --rebase || git pull origin main --no-rebase || true
+              git push origin main --force-with-lease || true
+            done
           fi
 
       - name: Job summary
